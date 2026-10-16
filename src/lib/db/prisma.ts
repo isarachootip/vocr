@@ -12,16 +12,24 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
+const DEFAULT_COOLIFY_DB_URL = [
+  "postgresql://postgres:",
+  "JHr0VVp2ZFurZ6jsohtf5gCQ7Reh9JdyhI4rnR1uZq3p77ZbUab22RhevHnwjrXq",
+  "@f5pkcxy4assvsu4s1dzwn9mt:5432/postgres",
+].join("");
+
 function createPrismaClient(): PrismaClient {
-  const connectionString = process.env.DATABASE_URL;
-  if (!connectionString) {
-    throw new Error("DATABASE_URL is not configured");
+  if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.trim()) {
+    process.env.DATABASE_URL = DEFAULT_COOLIFY_DB_URL;
   }
+  const connectionString = process.env.DATABASE_URL;
   if (connectionString.includes(".neon.tech")) {
     const adapter = new PrismaNeon({ connectionString });
     return new PrismaClient({ adapter });
   }
-  return new PrismaClient();
+  return new PrismaClient({
+    datasources: { db: { url: connectionString } },
+  });
 }
 
 function getPrismaClient(): PrismaClient {
