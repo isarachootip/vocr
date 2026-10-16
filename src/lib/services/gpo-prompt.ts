@@ -164,6 +164,9 @@ export function normalizeRawOcrPayload(
     sentDate: normalizeThaiDateToIso(raw.sentDate),
     authorizedSigner: pickStr(rawRec, ["authorizedSigner"]) || null,
     status: "PENDING_REVIEW",
+    sourceChannel: "WEB",
+    lineUserId: null,
+    lineDisplayName: null,
     overwriteExisting: false,
     pages: [
       {

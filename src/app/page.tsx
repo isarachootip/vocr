@@ -8,6 +8,7 @@ import { ReviewWorkspace } from "@/components/review/ReviewWorkspace";
 import { DocumentExplorerView } from "@/components/explorer/DocumentExplorerView";
 import { MasterDataPanel } from "@/components/explorer/MasterDataPanel";
 import { UserManagementPanel } from "@/components/users/UserManagementPanel";
+import { LineConfigPanel } from "@/components/line/LineConfigPanel";
 import { useOcrDashboard } from "@/hooks/useOcrDashboard";
 
 export default function HomePage() {
@@ -138,6 +139,14 @@ export default function HomePage() {
         )}
 
         {activeTab === "USERS" && <UserManagementPanel />}
+
+        {activeTab === "LINE_OA" && (
+          <LineConfigPanel
+            onDocumentReceived={async () => {
+              await fetchDocuments();
+            }}
+          />
+        )}
       </main>
     </div>
   );

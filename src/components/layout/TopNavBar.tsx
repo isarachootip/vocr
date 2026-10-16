@@ -9,10 +9,11 @@ import {
   Users,
   UserCheck,
   LogOut,
+  MessageCircle,
 } from "lucide-react";
 import type { SessionUser } from "@/lib/schemas/auth.schema";
 
-export type ActiveTab = "WORKSPACE" | "EXPLORER" | "MASTER_DATA" | "USERS";
+export type ActiveTab = "WORKSPACE" | "EXPLORER" | "MASTER_DATA" | "USERS" | "LINE_OA";
 
 interface TopNavBarProps {
   activeTab: ActiveTab;
@@ -113,6 +114,19 @@ export function TopNavBar({
           >
             <Users className="h-4 w-4" />
             <span>4. จัดการผู้ใช้งาน</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onSelectTab("LINE_OA")}
+            className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+              activeTab === "LINE_OA"
+                ? "bg-emerald-600 text-white shadow-sm"
+                : "text-emerald-700 hover:bg-emerald-50"
+            }`}
+          >
+            <MessageCircle className="h-4 w-4" />
+            <span>5. ตั้งค่า LINE OA</span>
           </button>
         </nav>
 

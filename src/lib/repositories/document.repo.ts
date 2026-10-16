@@ -3,6 +3,7 @@ import { prisma } from "../db/prisma";
 import type { DeliveryDocumentInput } from "../schemas/document.schema";
 import { validateDeliveryDocument } from "../domain/document-validator";
 import { upsertCustomer, upsertProduct } from "./master-data.repo";
+import { ensureLineDatabaseSchema } from "./line-config.repo";
 
 export class DuplicateDocumentError extends Error {
   public readonly billingNo: string;
@@ -26,6 +27,7 @@ export async function saveDeliveryDocument(
   input: DeliveryDocumentInput,
   userId?: string | null
 ) {
+  await ensureLineDatabaseSchema();
   const validationSummary = validateDeliveryDocument(input);
 
   return prisma.$transaction(async (tx) => {
@@ -102,6 +104,9 @@ export async function saveDeliveryDocument(
       sentDate: toDateOrNull(input.sentDate),
       authorizedSigner: input.authorizedSigner,
       status: input.status,
+      sourceChannel: input.sourceChannel ?? "WEB",
+      lineUserId: input.lineUserId ?? null,
+      lineDisplayName: input.lineDisplayName ?? null,
       validationSummary: validationSummary as unknown as Prisma.InputJsonValue,
       uploadedById: userId ?? null,
       verifiedById: input.status === "VERIFIED" ? (userId ?? null) : null,
@@ -162,4 +167,19 @@ export async function saveDeliveryDocument(
       include: { pages: true, items: { include: { lots: true } } },
     });
   });
+}
+
+export async function saveOrMergeLineDocument(
+  input: DeliveryDocumentInput,
+  sender: { lineUserId?: string | null; lineDisplayName?: string | null }
+) {
+  const payload: DeliveryDocumentInput = {
+    ...input,
+    status: "PENDING_REVIEW",
+    sourceChannel: "LINE",
+    lineUserId: sender.lineUserId ?? null,
+    lineDisplayName: sender.lineDisplayName ?? null,
+    overwriteExisting: true,
+  };
+  return saveDeliveryDocument(payload, null);
 }

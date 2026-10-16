@@ -102,8 +102,18 @@ export function DocumentExplorerView({
               documents.map((doc) => (
                 <tr key={doc.id} className="hover:bg-slate-50/80">
                   <td className="px-4 py-3">
-                    <div className="font-mono font-bold text-slate-900">{doc.billingNo}</div>
-                    <div className="text-[11px] text-slate-500">DO: {doc.deliveryOrderNo ?? "-"}</div>
+                    <div className="flex items-center gap-1.5 font-mono font-bold text-slate-900">
+                      <span>{doc.billingNo}</span>
+                      {doc.sourceChannel === "LINE" && (
+                        <span className="rounded bg-emerald-100 px-1.5 py-0.5 font-sans text-[10px] font-bold text-emerald-800">
+                          LINE OA
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-[11px] text-slate-500">
+                      DO: {doc.deliveryOrderNo ?? "-"}
+                      {doc.lineDisplayName ? ` • ${doc.lineDisplayName}` : ""}
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-slate-700">
                     {formatIsoToThaiDate(doc.billingDate) || (

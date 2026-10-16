@@ -109,6 +109,9 @@ model DeliveryDocument {
 
   status            DocumentStatus @default(PENDING_REVIEW)
   validationSummary Json?          @map("validation_summary")
+  sourceChannel     String         @default("WEB") @map("source_channel")
+  lineUserId        String?        @map("line_user_id")
+  lineDisplayName   String?        @map("line_display_name")
 
   uploadedById      String?        @map("uploaded_by_id")
   uploadedBy        User?          @relation("UploadedBy", fields: [uploadedById], references: [id])
@@ -122,6 +125,19 @@ model DeliveryDocument {
   items             DocumentItem[]
 
   @@map("delivery_documents")
+}
+
+model LineOaConfig {
+  id                 String   @id @default("default")
+  channelId          String   @map("channel_id")
+  channelSecret      String   @map("channel_secret")
+  channelAccessToken String   @map("channel_access_token")
+  oaUrl              String   @default("https://lin.ee/zW8Iu4s") @map("oa_url")
+  isActive           Boolean  @default(true) @map("is_active")
+  autoReplyFlex      Boolean  @default(true) @map("auto_reply_flex")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  @@map("line_oa_configs")
 }
 
 model DocumentPage {

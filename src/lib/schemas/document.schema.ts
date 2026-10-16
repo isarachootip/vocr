@@ -103,6 +103,9 @@ export const DeliveryDocumentInputSchema = z.object({
   authorizedSigner: z.string().nullable().default(null),
 
   status: z.enum(["PENDING_REVIEW", "VERIFIED", "NEEDS_CORRECTION"]).default("VERIFIED"),
+  sourceChannel: z.enum(["WEB", "LINE"]).default("WEB").optional(),
+  lineUserId: z.string().nullable().default(null).optional(),
+  lineDisplayName: z.string().nullable().default(null).optional(),
   overwriteExisting: z.boolean().default(false),
   pages: z.array(DocumentPageSchema).min(1),
   items: z.array(DocumentItemSchema).min(1),

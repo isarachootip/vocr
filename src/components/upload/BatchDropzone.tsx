@@ -62,18 +62,18 @@ export function BatchDropzone({
 
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs font-medium text-slate-500">
-            ทดสอบด้วยเอกสารจริงทั้ง 3 ใบ:
+            ทดสอบด้วยเอกสารจริงทั้ง 4 ใบ:
           </span>
           <button
             type="button"
             disabled={isExtracting}
             onClick={() =>
-              void onLoadSamples(["sample-1", "sample-2", "sample-3"])
+              void onLoadSamples(["sample-1", "sample-2", "sample-3", "sample-4"])
             }
             className="flex items-center gap-1.5 rounded-xl bg-amber-500/15 px-3 py-2 text-xs font-bold text-amber-900 ring-1 ring-amber-500/30 transition hover:bg-amber-500/25 disabled:opacity-50"
           >
             <Sparkles className="h-3.5 w-3.5 text-amber-700" />
-            <span>โหลดทั้ง 3 ใบพร้อมกัน (Batch)</span>
+            <span>โหลดทั้ง 4 ใบพร้อมกัน (Batch)</span>
           </button>
 
           <button
@@ -103,7 +103,17 @@ export function BatchDropzone({
             className="flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100"
           >
             <FileCheck2 className="h-3.5 w-3.5 text-teal-600" />
-            <span>ใบที่ 3 (Paracetamol แตก 2 Lot)</span>
+            <span>ใบที่ 3 (Paracetamol 2 Lot)</span>
+          </button>
+
+          <button
+            type="button"
+            disabled={isExtracting}
+            onClick={() => void onLoadSamples(["sample-4"])}
+            className="flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-800 hover:bg-emerald-100"
+          >
+            <FileCheck2 className="h-3.5 w-3.5 text-emerald-600" />
+            <span>ใบที่ 4 (รพ.ตำรวจ Oseltamivir)</span>
           </button>
         </div>
       </div>
