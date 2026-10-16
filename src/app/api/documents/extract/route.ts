@@ -1,7 +1,4 @@
 import { NextResponse } from "next/server";
-import { writeFile, mkdir } from "node:fs/promises";
-import path from "node:path";
-import crypto from "node:crypto";
 import { extractGpoDocumentFromImage } from "@/lib/services/gemini-ocr.service";
 import { mergeMultiPageDocuments } from "@/lib/domain/document-merger";
 import { validateDeliveryDocument } from "@/lib/domain/document-validator";
@@ -47,21 +44,16 @@ export async function POST(request: Request) {
         );
       }
 
-      const uploadDir = path.join(process.cwd(), "public", "uploads");
-      await mkdir(uploadDir, { recursive: true });
-
       for (const file of files) {
         const arrayBuf = await file.arrayBuffer();
         const buffer = Buffer.from(arrayBuf);
-        const ext = path.extname(file.name) || ".jpg";
-        const uniqueName = `gpo-${Date.now()}-${crypto.randomBytes(4).toString("hex")}${ext}`;
-        const filePath = path.join(uploadDir, uniqueName);
-        await writeFile(filePath, buffer);
+        const mimeType = file.type || "image/jpeg";
+        const base64Image = buffer.toString("base64");
+        const imageUrl = `data:${mimeType};base64,${base64Image}`;
 
-        const imageUrl = `/uploads/${uniqueName}`;
         const res = await extractGpoDocumentFromImage({
           imageBuffer: buffer,
-          mimeType: file.type || "image/jpeg",
+          mimeType,
           imageUrl,
           fileName: file.name,
           apiKeyOverride: apiKey,

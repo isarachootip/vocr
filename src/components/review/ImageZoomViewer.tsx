@@ -1,7 +1,15 @@
 "use client";
 
-import React, { useState } from "react";
-import { ZoomIn, ZoomOut, RotateCw, RefreshCcw, FileImage } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import {
+  ZoomIn,
+  ZoomOut,
+  RotateCw,
+  RefreshCcw,
+  FileImage,
+  Move,
+  AlertCircle,
+} from "lucide-react";
 import type { DocumentPageInput } from "@/lib/schemas/document.schema";
 
 interface ImageZoomViewerProps {
@@ -13,16 +21,53 @@ export function ImageZoomViewer({ pages, billingNo }: ImageZoomViewerProps) {
   const [activePageIdx, setActivePageIdx] = useState(0);
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [imgError, setImgError] = useState(false);
+  const dragStartRef = useRef({ x: 0, y: 0 });
 
   const currentPage = pages[activePageIdx] ?? pages[0];
+
+  useEffect(() => {
+    setActivePageIdx(0);
+    setZoom(1);
+    setRotation(0);
+    setPan({ x: 0, y: 0 });
+    setImgError(false);
+  }, [billingNo, pages]);
 
   const handleReset = () => {
     setZoom(1);
     setRotation(0);
+    setPan({ x: 0, y: 0 });
+  };
+
+  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const delta = e.deltaY < 0 ? 0.2 : -0.2;
+    setZoom((z) => Math.min(4, Math.max(0.5, +(z + delta).toFixed(2))));
+  };
+
+  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return;
+    setIsDragging(true);
+    dragStartRef.current = { x: e.clientX - pan.x, y: e.clientY - pan.y };
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isDragging) return;
+    setPan({
+      x: e.clientX - dragStartRef.current.x,
+      y: e.clientY - dragStartRef.current.y,
+    });
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
   };
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-slate-900 shadow-sm">
+    <div className="flex h-full min-h-[620px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-slate-900 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 bg-slate-950 px-3.5 py-2.5 text-xs text-slate-200">
         <div className="flex items-center gap-2">
           <FileImage className="h-4 w-4 text-teal-400" />
@@ -35,7 +80,10 @@ export function ImageZoomViewer({ pages, billingNo }: ImageZoomViewerProps) {
                 <button
                   key={p.pageNo}
                   type="button"
-                  onClick={() => setActivePageIdx(idx)}
+                  onClick={() => {
+                    setActivePageIdx(idx);
+                    setImgError(false);
+                  }}
                   className={`rounded-md px-2 py-0.5 text-[11px] font-medium ${
                     idx === activePageIdx
                       ? "bg-teal-600 text-white"
@@ -50,6 +98,9 @@ export function ImageZoomViewer({ pages, billingNo }: ImageZoomViewerProps) {
         </div>
 
         <div className="flex items-center gap-1">
+          <span className="mr-1 hidden items-center gap-1 text-[11px] text-slate-400 sm:inline-flex">
+            <Move className="h-3 w-3" /> ลากเพื่อเลื่อนดูภาพ
+          </span>
           <button
             type="button"
             title="ซูมออก"
@@ -64,7 +115,7 @@ export function ImageZoomViewer({ pages, billingNo }: ImageZoomViewerProps) {
           <button
             type="button"
             title="ซูมเข้า"
-            onClick={() => setZoom((z) => Math.min(3, +(z + 0.25).toFixed(2)))}
+            onClick={() => setZoom((z) => Math.min(4, +(z + 0.25).toFixed(2)))}
             className="rounded-lg bg-slate-800 p-1.5 text-slate-300 hover:bg-slate-700 hover:text-white"
           >
             <ZoomIn className="h-3.5 w-3.5" />
@@ -88,21 +139,34 @@ export function ImageZoomViewer({ pages, billingNo }: ImageZoomViewerProps) {
         </div>
       </div>
 
-      <div className="relative flex-1 overflow-auto p-4">
+      <div
+        onWheel={handleWheel}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        onDoubleClick={handleReset}
+        className={`relative flex-1 overflow-hidden p-4 select-none ${
+          isDragging ? "cursor-grabbing" : "cursor-grab"
+        }`}
+      >
         <div className="flex min-h-full items-start justify-center">
-          {currentPage ? (
+          {currentPage && !imgError ? (
             <img
               src={currentPage.imageUrl}
               alt={`ใบส่งของ ${billingNo} หน้า ${currentPage.pageNo}`}
+              draggable={false}
+              onError={() => setImgError(true)}
               style={{
-                transform: `scale(${zoom}) rotate(${rotation}deg)`,
+                transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom}) rotate(${rotation}deg)`,
                 transformOrigin: "top center",
               }}
-              className="max-w-full rounded-lg shadow-2xl transition-transform duration-150"
+              className="max-w-full rounded-lg shadow-2xl transition-transform duration-75"
             />
           ) : (
-            <div className="flex h-64 items-center justify-center text-xs text-slate-400">
-              ไม่มีภาพต้นฉบับ
+            <div className="flex h-64 flex-col items-center justify-center gap-2 text-center text-xs text-slate-400">
+              <AlertCircle className="h-6 w-6 text-amber-400" />
+              <span>ไม่พบไฟล์ภาพต้นฉบับ หรือกรุณาอัปโหลดรูปภาพใหม่อีกครั้ง</span>
             </div>
           )}
         </div>

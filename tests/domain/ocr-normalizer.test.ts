@@ -81,5 +81,67 @@ export function runOcrNormalizerTests(): void {
   assert.equal(normalized.items[0].lots[0].discount, 516.8);
   assert.equal(normalized.grossAmount, 2523.2);
 
+  // Test Case 2: Resilience against missing fields ("undefined" bug) & shifted totals (Billing 3001275083 scenario)
+  const partialAiPayload = {
+    billingNo: "3001275083",
+    billingDate: "16/10/2569",
+    salesOrderNo: "100771323",
+    deliveryOrderNo: "201666403",
+    customerCode: "120000030",
+    customerName: "โรงพยาบาลตำรวจ",
+    customerTaxId: "0994000161321",
+    grossAmount: 0,
+    subtotalExclVat: 0,
+    vatAmount: 12266.36,
+    netAmount: 175233.64,
+    items: [
+      {
+        lineNo: 1,
+        materialCode: undefined as unknown as string,
+        itemDescription: undefined as unknown as string,
+        productCode: "110199990111",
+        description: "ALBUMIN HUMAN 20% 50 ML",
+        totalQty: 30,
+        unit: "BOX",
+        lineAmount: 187500,
+        lots: [
+          {
+            lotNo: "I685238",
+            mfgDate: "02/09/2568",
+            expDate: "02/09/2573",
+            qty: 20,
+            unit: "BOX",
+            unitPrice: 6250,
+            discount: 0,
+            lotAmount: 125000,
+          },
+          {
+            lotNo: "I685237",
+            mfgDate: "01/09/2568",
+            expDate: "01/09/2573",
+            qty: 10,
+            unit: "BOX",
+            unitPrice: 6250,
+            discount: 0,
+            lotAmount: 62500,
+          },
+        ],
+      },
+    ],
+  } as unknown as RawGpoOcrPayload;
+
+  const dataUri = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/";
+  const fixedDoc = normalizeRawOcrPayload(partialAiPayload, dataUri);
+
+  assert.notEqual(fixedDoc.items[0].materialCode, "undefined");
+  assert.equal(fixedDoc.items[0].materialCode, "110199990111");
+  assert.notEqual(fixedDoc.items[0].itemDescription, "undefined");
+  assert.equal(fixedDoc.items[0].itemDescription, "ALBUMIN HUMAN 20% 50 ML");
+  assert.equal(fixedDoc.grossAmount, 187500);
+  assert.equal(fixedDoc.subtotalExclVat, 175233.64);
+  assert.equal(fixedDoc.vatAmount, 12266.36);
+  assert.equal(fixedDoc.netAmount, 187500);
+  assert.equal(fixedDoc.pages[0].imageUrl, dataUri);
+
   console.log("  ✓ OCR Raw Payload Normalizer tests passed");
 }

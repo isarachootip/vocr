@@ -4,6 +4,7 @@ import {
   normalizeRawOcrPayload,
   type RawGpoOcrPayload,
 } from "./gpo-prompt";
+import { GPO_OCR_RESPONSE_SCHEMA } from "./gpo-ocr-schema";
 import { findSampleByIdOrSize } from "./gpo-samples";
 import type { DeliveryDocumentInput } from "../schemas/document.schema";
 
@@ -85,6 +86,7 @@ export async function extractGpoDocumentFromImage(
     ],
     config: {
       responseMimeType: "application/json",
+      responseSchema: GPO_OCR_RESPONSE_SCHEMA,
       temperature: 0.1,
     },
   });

@@ -3,17 +3,12 @@
 import { useState, useEffect, useCallback } from "react";
 import type { ActiveTab } from "@/components/layout/TopNavBar";
 import type { SavedDocumentRecord } from "@/components/explorer/DocumentExplorerView";
-import type {
-  CustomerMasterRecord,
-  ProductMasterRecord,
-} from "@/components/explorer/MasterDataPanel";
+import type { CustomerMasterRecord, ProductMasterRecord } from "@/components/explorer/MasterDataPanel";
 import type { DeliveryDocumentInput } from "@/lib/schemas/document.schema";
 import type { SessionUser, UserRoleType } from "@/lib/schemas/auth.schema";
 
-const DEFAULT_GEMINI_KEY = [
-  "QVEuQWI4Uk42SzZQUU5H",
-  "QzZ3Rk5hZnVDUmRBME1TY01yTm9uU1NTejRmYjhOQVRrdGpseUE=",
-].reduce((acc, part) => acc + part, "");
+const DEFAULT_GEMINI_KEY = "QVEuQWI4Uk42SzZQUU5HQzZ3Rk5hZnVDUmRBME1TY01yTm9uU1NTejRmYjhOQVRrdGpseUE=";
+const GEMINI_KEY_STORAGE = "gpo_ocr_gemini_key";
 
 function getDefaultGeminiKey(): string {
   try {
@@ -24,8 +19,6 @@ function getDefaultGeminiKey(): string {
     return "";
   }
 }
-
-const GEMINI_KEY_STORAGE = "gpo_ocr_gemini_key";
 
 export function useOcrDashboard() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("WORKSPACE");
@@ -59,10 +52,7 @@ export function useOcrDashboard() {
   const fetchMasterData = useCallback(async () => {
     const res = await fetch("/api/master-data");
     if (res.ok) {
-      const data = (await res.json()) as {
-        customers: CustomerMasterRecord[];
-        products: ProductMasterRecord[];
-      };
+      const data = (await res.json()) as { customers: CustomerMasterRecord[]; products: ProductMasterRecord[] };
       setMasterData(data);
     }
   }, []);

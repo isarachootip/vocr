@@ -4,114 +4,108 @@ import {
   DeliveryDocumentInputSchema,
   type DeliveryDocumentInput,
 } from "../schemas/document.schema";
+import {
+  GPO_OCR_SYSTEM_PROMPT,
+  type RawGpoLotPayload,
+  type RawGpoItemPayload,
+  type RawGpoOcrPayload,
+} from "./gpo-ocr-schema";
 
-export interface RawGpoLotPayload {
-  lotNo: string;
-  mfgDate?: string | null;
-  expDate?: string | null;
-  qty: string | number;
-  unit: string;
-  unitPrice: string | number;
-  discount?: string | number | null;
-  lotAmount: string | number;
+export {
+  GPO_OCR_SYSTEM_PROMPT,
+  type RawGpoLotPayload,
+  type RawGpoItemPayload,
+  type RawGpoOcrPayload,
+};
+
+function round2(n: number): number {
+  return Math.round(n * 100) / 100;
 }
 
-export interface RawGpoItemPayload {
-  lineNo: number;
-  materialCode: string;
-  itemDescription: string;
-  tradeName?: string | null;
-  gpuCode?: string | null;
-  tpuCode?: string | null;
-  totalQty: string | number;
-  unit: string;
-  unitPrice?: string | number | null;
-  discount?: string | number | null;
-  lineAmount: string | number;
-  lots: RawGpoLotPayload[];
+function pickStr(
+  record: Record<string, unknown>,
+  keys: string[],
+  fallback = ""
+): string {
+  for (const key of keys) {
+    const val = record[key];
+    if (val !== undefined && val !== null) {
+      const str = String(val).trim();
+      if (str && str.toLowerCase() !== "undefined" && str.toLowerCase() !== "null") {
+        return str;
+      }
+    }
+  }
+  return fallback;
 }
 
-export interface RawGpoOcrPayload {
-  billingNo: string;
-  billingDate?: string | null;
-  poNo?: string | null;
-  poDate?: string | null;
-  salesOrderNo?: string | null;
-  salesOrderDate?: string | null;
-  deliveryOrderNo?: string | null;
-  deliveryOrderDate?: string | null;
-  budgetType?: string | null;
-  docTypeCode?: string | null;
-  customerGroup?: string | null;
-  customerCode: string;
-  customerName: string;
-  customerAddress?: string;
-  customerTaxId?: string | null;
-  customerBranch?: string | null;
-  shipToCode?: string | null;
-  shipToName?: string | null;
-  shipToAddress?: string | null;
-  pageNo?: number;
-  totalPages?: number;
-  grossAmount: string | number;
-  subtotalExclVat: string | number;
-  vatRate?: string | number;
-  vatAmount: string | number;
-  netAmount: string | number;
-  amountInWords?: string | null;
-  hasStamp?: boolean;
-  stampOrderNo?: string | null;
-  stampDate?: string | null;
-  hasReceiverSig?: boolean;
-  receiverName?: string | null;
-  receivedDate?: string | null;
-  hasSenderSig?: boolean;
-  senderName?: string | null;
-  sentDate?: string | null;
-  authorizedSigner?: string | null;
-  items: RawGpoItemPayload[];
-}
+function reconcileTotals(
+  rawGross: number,
+  rawSubtotal: number,
+  vatAmount: number,
+  rawNet: number,
+  itemsSum: number
+) {
+  const grossAmount = rawGross > 0 ? rawGross : itemsSum;
+  let subtotalExclVat = rawSubtotal;
+  let netAmount = rawNet > 0 ? rawNet : grossAmount;
 
-export const GPO_OCR_SYSTEM_PROMPT = `คุณคือระบบ AI ผู้เชี่ยวชาญการอ่าน "ใบส่งของ" ขององค์การเภสัชกรรม (The Government Pharmaceutical Organization - GPO)
-กรุณาสกัดข้อมูลทั้งหมดออกมาเป็น JSON ตามโครงสร้าง RawGpoOcrPayload อย่างเคร่งครัด:
-1. ด้านขวาบนจะมี "หน้า X / Y" และ "วันที่:" 4 บรรทัดซึ่งตรงกับ Billing No., PO No., Sales Order No., Delivery Order No. ตามลำดับ (หากว่างเปล่าให้ส่ง null)
-2. ในตารางรายการสินค้า:
-   - หากมี 1 Lot (เช่น Lot: S690081 Mfg: ... Exp: ...) ให้สร้าง 1 รายการใน lots[] โดยใช้ qty, unitPrice, discount, lotAmount เดียวกับบรรทัดหลัก
-   - หาก 1 รายการสินค้าแตกออกเป็นหลายบรรทัด Lot (เช่น มีจำนวนรวมขีดเส้นใต้ 40.00 BOX แล้วมีบรรทัดย่อย Lot: Q-606 จำนวน 24.00 BOX และ Lot: Q-605 จำนวน 16.00 BOX) ให้รวมเป็น 1 Item ที่มี totalQty = 40, lineAmount = ผลรวมจำนวนเงินทุก Lot และใส่แต่ละ Lot ลงใน lots[]
-3. สกัด GPU, TPU, Trade Name ออกจากใต้ชื่อสินค้า
-4. ส่วนลดที่มีเครื่องหมายลบต่อท้าย เช่น "516.80-" ให้ส่งมาตามจริงหรือเป็นตัวเลขบวก
-5. ตรวจสอบตราประทับรับของ (hasStamp, stampOrderNo, stampDate) และลายมือชื่อผู้รับของ/ผู้ส่งของด้านล่างสุด
-ตอบกลับเป็น JSON เท่านั้น ห้ามครอบด้วย markdown`;
+  if (subtotalExclVat <= 0 && grossAmount > 0) {
+    if (vatAmount > 0 && Math.abs(netAmount + vatAmount - grossAmount) <= 0.05) {
+      subtotalExclVat = netAmount;
+      netAmount = grossAmount;
+    } else if (vatAmount > 0 && Math.abs(netAmount - grossAmount) <= 0.05) {
+      subtotalExclVat = round2(netAmount - vatAmount);
+    } else {
+      subtotalExclVat = round2(grossAmount - vatAmount);
+    }
+  }
+
+  return { grossAmount, subtotalExclVat, netAmount };
+}
 
 export function normalizeRawOcrPayload(
   raw: RawGpoOcrPayload,
   imageUrl: string
 ): DeliveryDocumentInput {
-  const normalizedItems = raw.items.map((item, idx) => {
-    const lots = item.lots.map((lot) => ({
-      lotNo: String(lot.lotNo).trim(),
-      mfgDate: normalizeThaiDateToIso(lot.mfgDate),
-      expDate: normalizeThaiDateToIso(lot.expDate),
-      qty: parseDocumentNumber(lot.qty),
-      unit: String(lot.unit || item.unit || "BOX").trim(),
-      unitPrice: parseDocumentNumber(lot.unitPrice),
-      discount: parseTrailingDiscount(lot.discount),
-      lotAmount: parseDocumentNumber(lot.lotAmount),
-    }));
+  const rawItems = Array.isArray(raw.items) ? raw.items : [];
+  const normalizedItems = rawItems.map((item, idx) => {
+    const itemRec = item as unknown as Record<string, unknown>;
+    const rawLots = Array.isArray(item.lots) ? item.lots : [];
+    const lots = rawLots.map((lot) => {
+      const lotRec = lot as unknown as Record<string, unknown>;
+      return {
+        lotNo: pickStr(lotRec, ["lotNo", "lot", "batchNo"], "-"),
+        mfgDate: normalizeThaiDateToIso(lot.mfgDate),
+        expDate: normalizeThaiDateToIso(lot.expDate),
+        qty: parseDocumentNumber(lot.qty),
+        unit: pickStr(lotRec, ["unit"], pickStr(itemRec, ["unit"], "BOX")),
+        unitPrice: parseDocumentNumber(lot.unitPrice),
+        discount: parseTrailingDiscount(lot.discount),
+        lotAmount: parseDocumentNumber(lot.lotAmount),
+      };
+    });
 
     const computedLineAmt =
       parseDocumentNumber(item.lineAmount) ||
-      lots.reduce((acc, l) => acc + l.lotAmount, 0);
+      round2(lots.reduce((acc, l) => acc + l.lotAmount, 0));
+    const computedQty =
+      parseDocumentNumber(item.totalQty) ||
+      round2(lots.reduce((acc, l) => acc + l.qty, 0));
 
     return {
       lineNo: item.lineNo || idx + 1,
-      materialCode: String(item.materialCode).trim(),
-      itemDescription: String(item.itemDescription).trim(),
-      tradeName: item.tradeName ? String(item.tradeName).trim() : null,
-      gpuCode: item.gpuCode ? String(item.gpuCode).trim() : null,
-      tpuCode: item.tpuCode ? String(item.tpuCode).trim() : null,
-      totalQty: parseDocumentNumber(item.totalQty),
-      unit: String(item.unit || "BOX").trim(),
+      materialCode: pickStr(itemRec, ["materialCode", "productCode", "itemCode", "code"], "UNKNOWN"),
+      itemDescription: pickStr(
+        itemRec,
+        ["itemDescription", "description", "productName", "itemName"],
+        "ไม่ระบุชื่อสินค้า"
+      ),
+      tradeName: pickStr(itemRec, ["tradeName"]) || null,
+      gpuCode: pickStr(itemRec, ["gpuCode", "gpu"]) || null,
+      tpuCode: pickStr(itemRec, ["tpuCode", "tpu"]) || null,
+      totalQty: computedQty > 0 ? computedQty : 1,
+      unit: pickStr(itemRec, ["unit"], lots[0]?.unit || "BOX"),
       unitPrice:
         item.unitPrice !== undefined && item.unitPrice !== null
           ? parseDocumentNumber(item.unitPrice)
@@ -122,42 +116,53 @@ export function normalizeRawOcrPayload(
     };
   });
 
+  const rawRec = raw as unknown as Record<string, unknown>;
+  const itemsSum = round2(normalizedItems.reduce((acc, i) => acc + i.lineAmount, 0));
+  const vatAmount = parseDocumentNumber(raw.vatAmount);
+  const { grossAmount, subtotalExclVat, netAmount } = reconcileTotals(
+    parseDocumentNumber(raw.grossAmount),
+    parseDocumentNumber(raw.subtotalExclVat),
+    vatAmount,
+    parseDocumentNumber(raw.netAmount),
+    itemsSum
+  );
+
   const candidate: DeliveryDocumentInput = {
-    billingNo: String(raw.billingNo).trim(),
+    billingNo: pickStr(rawRec, ["billingNo", "invoiceNo"], "UNKNOWN"),
     billingDate: normalizeThaiDateToIso(raw.billingDate),
-    poNo: raw.poNo ? String(raw.poNo).trim() : "-",
+    poNo: pickStr(rawRec, ["poNo"], "-"),
     poDate: normalizeThaiDateToIso(raw.poDate),
-    salesOrderNo: raw.salesOrderNo ? String(raw.salesOrderNo).trim() : null,
+    salesOrderNo: pickStr(rawRec, ["salesOrderNo"]) || null,
     salesOrderDate: normalizeThaiDateToIso(raw.salesOrderDate),
-    deliveryOrderNo: raw.deliveryOrderNo ? String(raw.deliveryOrderNo).trim() : null,
+    deliveryOrderNo: pickStr(rawRec, ["deliveryOrderNo"]) || null,
     deliveryOrderDate: normalizeThaiDateToIso(raw.deliveryOrderDate),
-    budgetType: raw.budgetType ? String(raw.budgetType).trim() : null,
-    docTypeCode: raw.docTypeCode ? String(raw.docTypeCode).trim() : "ZS01/ZB01",
-    customerGroup: raw.customerGroup ? String(raw.customerGroup).trim() : null,
-    customerCode: String(raw.customerCode).trim(),
-    customerName: String(raw.customerName).trim(),
-    customerAddress: raw.customerAddress ? String(raw.customerAddress).trim() : "",
-    customerTaxId: raw.customerTaxId ? String(raw.customerTaxId).trim() : null,
-    customerBranch: raw.customerBranch ? String(raw.customerBranch).trim() : null,
-    shipToCode: raw.shipToCode ? String(raw.shipToCode).trim() : null,
-    shipToName: raw.shipToName ? String(raw.shipToName).trim() : null,
-    shipToAddress: raw.shipToAddress ? String(raw.shipToAddress).trim() : null,
-    grossAmount: parseDocumentNumber(raw.grossAmount),
-    subtotalExclVat: parseDocumentNumber(raw.subtotalExclVat),
+    budgetType: pickStr(rawRec, ["budgetType"]) || null,
+    docTypeCode: pickStr(rawRec, ["docTypeCode"], "ZS01/ZB01"),
+    customerGroup: pickStr(rawRec, ["customerGroup"]) || null,
+    customerCode: pickStr(rawRec, ["customerCode"], "-"),
+    customerName: pickStr(rawRec, ["customerName"], "-"),
+    customerAddress: pickStr(rawRec, ["customerAddress"], ""),
+    customerTaxId: pickStr(rawRec, ["customerTaxId"]) || null,
+    customerBranch: pickStr(rawRec, ["customerBranch"]) || null,
+    shipToCode: pickStr(rawRec, ["shipToCode"]) || null,
+    shipToName: pickStr(rawRec, ["shipToName"]) || null,
+    shipToAddress: pickStr(rawRec, ["shipToAddress"]) || null,
+    grossAmount,
+    subtotalExclVat,
     vatRate: raw.vatRate ? parseDocumentNumber(raw.vatRate) : 7.0,
-    vatAmount: parseDocumentNumber(raw.vatAmount),
-    netAmount: parseDocumentNumber(raw.netAmount),
-    amountInWords: raw.amountInWords ? String(raw.amountInWords).trim() : null,
+    vatAmount,
+    netAmount,
+    amountInWords: pickStr(rawRec, ["amountInWords"]) || null,
     hasStamp: Boolean(raw.hasStamp),
-    stampOrderNo: raw.stampOrderNo ? String(raw.stampOrderNo).trim() : null,
+    stampOrderNo: pickStr(rawRec, ["stampOrderNo"]) || null,
     stampDate: normalizeThaiDateToIso(raw.stampDate),
     hasReceiverSig: Boolean(raw.hasReceiverSig),
-    receiverName: raw.receiverName ? String(raw.receiverName).trim() : null,
+    receiverName: pickStr(rawRec, ["receiverName"]) || null,
     receivedDate: normalizeThaiDateToIso(raw.receivedDate),
     hasSenderSig: Boolean(raw.hasSenderSig),
-    senderName: raw.senderName ? String(raw.senderName).trim() : null,
+    senderName: pickStr(rawRec, ["senderName"]) || null,
     sentDate: normalizeThaiDateToIso(raw.sentDate),
-    authorizedSigner: raw.authorizedSigner ? String(raw.authorizedSigner).trim() : null,
+    authorizedSigner: pickStr(rawRec, ["authorizedSigner"]) || null,
     status: "PENDING_REVIEW",
     overwriteExisting: false,
     pages: [
