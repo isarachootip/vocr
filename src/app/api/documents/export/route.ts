@@ -3,6 +3,8 @@ import { listDeliveryDocuments } from "@/lib/repositories/document-query.repo";
 import { DocumentFilterSchema } from "@/lib/schemas/master.schema";
 import { formatIsoToThaiDate } from "@/lib/domain/thai-date";
 
+export const dynamic = "force-dynamic";
+
 function escapeCsvCell(val: string | number | boolean | null | undefined): string {
   if (val === null || val === undefined) return '""';
   const str = String(val).replace(/"/g, '""');
