@@ -17,8 +17,11 @@ function createPrismaClient(): PrismaClient {
   if (!connectionString) {
     throw new Error("DATABASE_URL is not configured");
   }
-  const adapter = new PrismaNeon({ connectionString });
-  return new PrismaClient({ adapter });
+  if (connectionString.includes(".neon.tech")) {
+    const adapter = new PrismaNeon({ connectionString });
+    return new PrismaClient({ adapter });
+  }
+  return new PrismaClient();
 }
 
 function getPrismaClient(): PrismaClient {
