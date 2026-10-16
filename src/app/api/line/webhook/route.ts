@@ -12,6 +12,8 @@ import {
   replyLineMessages,
 } from "@/lib/services/line-messaging.service";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const config = await getLineOaConfig();
   return NextResponse.json({

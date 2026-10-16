@@ -11,11 +11,15 @@ if (!process.env.DATABASE_URL || !process.env.DATABASE_URL.trim()) {
 }
 
 console.log("[startup] Ensuring PostgreSQL schema is pushed (prisma db push)...");
-const pushResult = spawnSync("npx", ["prisma", "db", "push", "--skip-generate"], {
-  stdio: "inherit",
-  env: process.env,
-  shell: true,
-});
+const pushResult = spawnSync(
+  "npx",
+  ["prisma", "db", "push", "--skip-generate", "--accept-data-loss"],
+  {
+    stdio: "inherit",
+    env: process.env,
+    shell: true,
+  }
+);
 
 if (pushResult.status !== 0) {
   console.warn("[startup] Warning: prisma db push returned non-zero status, continuing to start Next.js server...");

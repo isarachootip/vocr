@@ -6,6 +6,8 @@ import {
 import { LineOaConfigInputSchema } from "@/lib/schemas/line.schema";
 import { verifyLineBotConnection } from "@/lib/services/line-messaging.service";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
