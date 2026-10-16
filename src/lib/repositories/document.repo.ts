@@ -169,17 +169,4 @@ export async function saveDeliveryDocument(
   });
 }
 
-export async function saveOrMergeLineDocument(
-  input: DeliveryDocumentInput,
-  sender: { lineUserId?: string | null; lineDisplayName?: string | null }
-) {
-  const payload: DeliveryDocumentInput = {
-    ...input,
-    status: "PENDING_REVIEW",
-    sourceChannel: "LINE",
-    lineUserId: sender.lineUserId ?? null,
-    lineDisplayName: sender.lineDisplayName ?? null,
-    overwriteExisting: true,
-  };
-  return saveDeliveryDocument(payload, null);
-}
+export { saveOrMergeLineDocument } from "./line-document.repo";

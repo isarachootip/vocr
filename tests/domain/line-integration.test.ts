@@ -60,7 +60,7 @@ export async function runLineIntegrationTests(): Promise<void> {
     }`
   );
 
-  // 4. Test LINE Document Upsert & Multi-Page Merge
+  // 4. Test LINE Document Upsert & Sequential Multi-Page Merge (Page 1/2 then Page 2/2)
   const savedLineDoc = await saveOrMergeLineDocument(doc4, {
     lineUserId: "U1234567890abcdef",
     lineDisplayName: "ภก. สมชาย (รพ.ตำรวจ)",
@@ -69,6 +69,48 @@ export async function runLineIntegrationTests(): Promise<void> {
   assert.equal(savedLineDoc.sourceChannel, "LINE");
   assert.equal(savedLineDoc.lineDisplayName, "ภก. สมชาย (รพ.ตำรวจ)");
   assert.equal(savedLineDoc.status, "PENDING_REVIEW");
+
+  // Simulate sending Page 1/2 then Page 2/2 in two separate LINE messages
+  const multiBillingNo = "3001279999";
+  const page1Doc = {
+    ...doc4,
+    billingNo: multiBillingNo,
+    grossAmount: 0,
+    subtotalExclVat: 0,
+    vatAmount: 0,
+    netAmount: 0,
+    pages: [{ pageNo: 1, totalPages: 2, imageUrl: "/samples/gpo-sample-4.jpg" }],
+    items: [{ ...doc4.items[0], lineNo: 1 }],
+  };
+  const page2Doc = {
+    ...doc4,
+    billingNo: multiBillingNo,
+    grossAmount: 375000,
+    subtotalExclVat: 350467.29,
+    vatAmount: 24532.71,
+    netAmount: 375000,
+    pages: [{ pageNo: 2, totalPages: 2, imageUrl: "/samples/gpo-sample-4.jpg" }],
+    items: [
+      {
+        ...doc4.items[0],
+        lineNo: 2,
+        materialCode: "110216930999",
+        itemDescription: "OSELTAMIVIR SUSPENSION (PAGE 2)",
+      },
+    ],
+  };
+
+  await saveOrMergeLineDocument(page1Doc, {
+    lineUserId: "U1234567890abcdef",
+    lineDisplayName: "ภก. สมชาย (รพ.ตำรวจ)",
+  });
+  const mergedSaved = await saveOrMergeLineDocument(page2Doc, {
+    lineUserId: "U1234567890abcdef",
+    lineDisplayName: "ภก. สมชาย (รพ.ตำรวจ)",
+  });
+  assert.equal(mergedSaved.pages.length, 2);
+  assert.equal(mergedSaved.items.length, 2);
+  assert.equal(mergedSaved.netAmount, 375000);
 
   console.log("  ✓ LINE OA Signature, Flex Message Builder, Config Repo & Multi-Page Merge passed");
 }
