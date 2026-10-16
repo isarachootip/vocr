@@ -63,7 +63,7 @@ export async function POST(request: Request) {
       docInput.status = "PENDING_REVIEW";
     }
 
-    const userId = user.id === "default-reviewer" ? null : user.id;
+    const userId = !user || user.id === "default-reviewer" ? null : user.id;
     const saved = await saveDeliveryDocument(docInput, userId);
 
     return NextResponse.json({ document: saved }, { status: 201 });

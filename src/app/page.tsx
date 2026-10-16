@@ -2,16 +2,20 @@
 
 import React from "react";
 import { TopNavBar } from "@/components/layout/TopNavBar";
+import { LoginGate } from "@/components/auth/LoginGate";
 import { BatchDropzone } from "@/components/upload/BatchDropzone";
 import { ReviewWorkspace } from "@/components/review/ReviewWorkspace";
 import { DocumentExplorerView } from "@/components/explorer/DocumentExplorerView";
 import { MasterDataPanel } from "@/components/explorer/MasterDataPanel";
+import { UserManagementPanel } from "@/components/users/UserManagementPanel";
 import { useOcrDashboard } from "@/hooks/useOcrDashboard";
 
 export default function HomePage() {
   const {
     activeTab,
     setActiveTab,
+    isAuthChecking,
+    isAuthenticated,
     user,
     apiKey,
     setApiKey,
@@ -26,11 +30,24 @@ export default function HomePage() {
     savedDocs,
     masterData,
     fetchDocuments,
-    handleRoleChange,
+    handleLogin,
+    handleLogout,
     handleLoadSamples,
     handleUploadFiles,
     handleSaveDocument,
   } = useOcrDashboard();
+
+  if (isAuthChecking) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 text-xs font-semibold text-slate-500">
+        กำลังตรวจสอบสถานะผู้ใช้งาน...
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <LoginGate onLogin={handleLogin} />;
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 pb-16">
@@ -38,7 +55,7 @@ export default function HomePage() {
         activeTab={activeTab}
         onSelectTab={setActiveTab}
         user={user}
-        onRoleChange={handleRoleChange}
+        onLogout={handleLogout}
         apiKey={apiKey}
         onApiKeyChange={setApiKey}
         queueCount={queue.length}
@@ -109,7 +126,7 @@ export default function HomePage() {
               await fetch(`/api/documents?id=${id}`, { method: "DELETE" });
               await fetchDocuments();
             }}
-            canDelete={user.role !== "UPLOADER"}
+            canDelete={true}
           />
         )}
 
@@ -119,6 +136,8 @@ export default function HomePage() {
             products={masterData.products}
           />
         )}
+
+        {activeTab === "USERS" && <UserManagementPanel />}
       </main>
     </div>
   );
