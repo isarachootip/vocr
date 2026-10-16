@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
+    "build": "prisma generate && next build && node -e \"require('fs').rmSync('.next/cache',{recursive:true,force:true})\"",
     "start": "prisma db push && next start",
     "typecheck": "tsc --noEmit",
     "test": "tsx tests/run-all.ts",
