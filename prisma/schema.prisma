@@ -1,0 +1,177 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  UPLOADER
+  REVIEWER
+  ADMIN
+}
+
+enum DocumentStatus {
+  PENDING_REVIEW
+  VERIFIED
+  NEEDS_CORRECTION
+}
+
+model User {
+  id                String             @id @default(uuid())
+  email             String             @unique
+  name              String
+  passwordHash      String             @map("password_hash")
+  role              UserRole           @default(REVIEWER)
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+  uploadedDocuments DeliveryDocument[] @relation("UploadedBy")
+  verifiedDocuments DeliveryDocument[] @relation("VerifiedBy")
+
+  @@map("users")
+}
+
+model Customer {
+  id            String             @id @default(uuid())
+  customerCode  String             @unique @map("customer_code")
+  name          String
+  address       String             @default("")
+  taxId         String?            @map("tax_id")
+  branch        String?
+  customerGroup String?            @map("customer_group")
+  createdAt     DateTime           @default(now()) @map("created_at")
+  updatedAt     DateTime           @updatedAt @map("updated_at")
+  documents     DeliveryDocument[]
+
+  @@map("customers")
+}
+
+model Product {
+  id           String         @id @default(uuid())
+  materialCode String         @unique @map("material_code")
+  description  String
+  tradeName    String?        @map("trade_name")
+  gpuCode      String?        @map("gpu_code")
+  tpuCode      String?        @map("tpu_code")
+  defaultUnit  String         @default("BOX") @map("default_unit")
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+  items        DocumentItem[]
+
+  @@map("products")
+}
+
+model DeliveryDocument {
+  id                String         @id @default(uuid())
+  billingNo         String         @unique @map("billing_no")
+  billingDate       DateTime?      @map("billing_date") @db.Date
+  poNo              String?        @map("po_no")
+  poDate            DateTime?      @map("po_date") @db.Date
+  salesOrderNo      String?        @map("sales_order_no")
+  salesOrderDate    DateTime?      @map("sales_order_date") @db.Date
+  deliveryOrderNo   String?        @map("delivery_order_no")
+  deliveryOrderDate DateTime?      @map("delivery_order_date") @db.Date
+  budgetType        String?        @map("budget_type")
+  docTypeCode       String?        @map("doc_type_code")
+  customerGroup     String?        @map("customer_group")
+
+  customerId        String?        @map("customer_id")
+  customer          Customer?      @relation(fields: [customerId], references: [id])
+  customerCode      String         @map("customer_code")
+  customerName      String         @map("customer_name")
+  customerAddress   String         @default("") @map("customer_address")
+  customerTaxId     String?        @map("customer_tax_id")
+  customerBranch    String?        @map("customer_branch")
+
+  shipToCode        String?        @map("ship_to_code")
+  shipToName        String?        @map("ship_to_name")
+  shipToAddress     String?        @map("ship_to_address")
+
+  grossAmount       Float          @map("gross_amount")
+  subtotalExclVat   Float          @map("subtotal_excl_vat")
+  vatRate           Float          @default(7.0) @map("vat_rate")
+  vatAmount         Float          @map("vat_amount")
+  netAmount         Float          @map("net_amount")
+  amountInWords     String?        @map("amount_in_words")
+
+  hasStamp          Boolean        @default(false) @map("has_stamp")
+  stampOrderNo      String?        @map("stamp_order_no")
+  stampDate         DateTime?      @map("stamp_date") @db.Date
+  hasReceiverSig    Boolean        @default(false) @map("has_receiver_sig")
+  receiverName      String?        @map("receiver_name")
+  receivedDate      DateTime?      @map("received_date") @db.Date
+  hasSenderSig      Boolean        @default(false) @map("has_sender_sig")
+  senderName        String?        @map("sender_name")
+  sentDate          DateTime?      @map("sent_date") @db.Date
+  authorizedSigner  String?        @map("authorized_signer")
+
+  status            DocumentStatus @default(PENDING_REVIEW)
+  validationSummary Json?          @map("validation_summary")
+
+  uploadedById      String?        @map("uploaded_by_id")
+  uploadedBy        User?          @relation("UploadedBy", fields: [uploadedById], references: [id])
+  verifiedById      String?        @map("verified_by_id")
+  verifiedBy        User?          @relation("VerifiedBy", fields: [verifiedById], references: [id])
+
+  createdAt         DateTime       @default(now()) @map("created_at")
+  updatedAt         DateTime       @updatedAt @map("updated_at")
+
+  pages             DocumentPage[]
+  items             DocumentItem[]
+
+  @@map("delivery_documents")
+}
+
+model DocumentPage {
+  id         String           @id @default(uuid())
+  documentId String           @map("document_id")
+  document   DeliveryDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  pageNo     Int              @default(1) @map("page_no")
+  totalPages Int              @default(1) @map("total_pages")
+  imageUrl   String           @map("image_url")
+  createdAt  DateTime         @default(now()) @map("created_at")
+
+  @@map("document_pages")
+}
+
+model DocumentItem {
+  id              String            @id @default(uuid())
+  documentId      String            @map("document_id")
+  document        DeliveryDocument  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  lineNo          Int               @map("line_no")
+  productId       String?           @map("product_id")
+  product         Product?          @relation(fields: [productId], references: [id])
+  materialCode    String            @map("material_code")
+  itemDescription String            @map("item_description")
+  tradeName       String?           @map("trade_name")
+  gpuCode         String?           @map("gpu_code")
+  tpuCode         String?           @map("tpu_code")
+  totalQty        Float             @map("total_qty")
+  unit            String
+  unitPrice       Float?            @map("unit_price")
+  discount        Float             @default(0)
+  lineAmount      Float             @map("line_amount")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  lots            DocumentItemLot[]
+
+  @@map("document_items")
+}
+
+model DocumentItemLot {
+  id             String       @id @default(uuid())
+  documentItemId String       @map("document_item_id")
+  documentItem   DocumentItem @relation(fields: [documentItemId], references: [id], onDelete: Cascade)
+  lotNo          String       @map("lot_no")
+  mfgDate        DateTime?    @map("mfg_date") @db.Date
+  expDate        DateTime?    @map("exp_date") @db.Date
+  qty            Float
+  unit           String
+  unitPrice      Float        @map("unit_price")
+  discount       Float        @default(0)
+  lotAmount      Float        @map("lot_amount")
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  @@map("document_item_lots")
+}
