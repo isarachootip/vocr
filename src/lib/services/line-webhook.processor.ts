@@ -5,6 +5,10 @@ import type { LineOaConfigRecord, LineWebhookEvent } from "../schemas/line.schem
 import { extractGpoDocumentFromImage } from "./gemini-ocr.service";
 import { buildDeliveryDocumentFlexMessage } from "./line-flex.builder";
 import {
+  buildLineQuickReplyItems,
+  generateLineAiReply,
+} from "./line-ai-assistant.service";
+import {
   fetchLineMessageContent,
   fetchLineUserProfile,
   replyLineMessages,
@@ -16,15 +20,24 @@ export async function processLineWebhookEvents(
   originUrl: string
 ): Promise<string[]> {
   const processedDocs: string[] = [];
+  const quickReply = { items: buildLineQuickReplyItems() };
 
   for (const event of events) {
+    const userId = event.source?.userId ?? null;
+    const profile = userId
+      ? await fetchLineUserProfile(userId, config.channelAccessToken)
+      : null;
+    const displayName = profile?.displayName ?? "ผู้ใช้งาน LINE";
+
     if (event.type === "follow" && event.replyToken) {
+      const welcome = await generateLineAiReply("สวัสดี", displayName);
       await replyLineMessages(
         event.replyToken,
         [
           {
             type: "text",
-            text: 'ยินดีต้อนรับสู่ระบบ GPO Delivery Note OCR 🏥\nคุณสามารถกดส่ง "รูปถ่ายใบส่งของ" หรือแนบ "ไฟล์ PDF" เข้ามาในห้องแชทนี้ได้ทันทีโดยไม่ต้องพิมพ์ข้อความ ระบบจะสกัดข้อมูลด้วย AI และตอบกลับสรุปผลอัตโนมัติครับ',
+            text: welcome.replyText,
+            quickReply,
           },
         ],
         config.channelAccessToken
@@ -36,11 +49,6 @@ export async function processLineWebhookEvents(
     const msgType = event.message.type;
 
     if (msgType === "image" || msgType === "file") {
-      const userId = event.source?.userId ?? null;
-      const profile = userId
-        ? await fetchLineUserProfile(userId, config.channelAccessToken)
-        : null;
-      const displayName = profile?.displayName ?? "LINE User";
       const rawFileName = event.message.fileName || `line-${event.message.id}.jpg`;
 
       await createOrUpdateLineInboxItem({
@@ -99,7 +107,12 @@ export async function processLineWebhookEvents(
           );
           await replyLineMessages(
             event.replyToken,
-            [flexMsg as unknown as Record<string, unknown>],
+            [
+              {
+                ...(flexMsg as unknown as Record<string, unknown>),
+                quickReply,
+              },
+            ],
             config.channelAccessToken
           );
         }
@@ -123,23 +136,41 @@ export async function processLineWebhookEvents(
               {
                 type: "text",
                 text: `❌ ระบบไม่สามารถสกัดข้อมูลจากไฟล์ได้: ${errMsg}\nกรุณาส่งภาพถ่ายใบส่งขององค์การเภสัชกรรมหรือไฟล์ PDF ที่เห็นเลขที่ Billing No. ชัดเจน`,
+                quickReply,
               },
             ],
             config.channelAccessToken
           );
         }
       }
-    } else if (msgType === "text" && event.replyToken) {
-      await replyLineMessages(
-        event.replyToken,
-        [
-          {
-            type: "text",
-            text: '📄 ระบบพร้อมรับไฟล์ใบส่งขององค์การเภสัชกรรม (GPO)\nสามารถกดส่ง "รูปภาพ" หรือแนบ "ไฟล์ PDF" เข้ามาในแชทนี้ได้ทันทีครับ',
-          },
-        ],
-        config.channelAccessToken
-      );
+    } else if (msgType === "text") {
+      const userText = event.message.text || "สวัสดี";
+      const aiReply = await generateLineAiReply(userText, displayName);
+
+      await createOrUpdateLineInboxItem({
+        lineMessageId: event.message.id,
+        messageType: "text",
+        fileName: userText.slice(0, 120),
+        lineUserId: userId,
+        lineDisplayName: displayName,
+        ocrStatus: "COMPLETED",
+        billingNo: aiReply.matchedBillingNo,
+        customerName: `AI ตอบกลับแชท (${userText.slice(0, 35)})`,
+      });
+
+      if (event.replyToken) {
+        await replyLineMessages(
+          event.replyToken,
+          [
+            {
+              type: "text",
+              text: aiReply.replyText,
+              quickReply,
+            },
+          ],
+          config.channelAccessToken
+        );
+      }
     }
   }
 

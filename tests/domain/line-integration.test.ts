@@ -12,6 +12,7 @@ import {
 } from "../../src/lib/repositories/line-inbox.repo";
 import { DEFAULT_LINE_CONFIG } from "../../src/lib/schemas/line.schema";
 import { verifyLineBotConnection } from "../../src/lib/services/line-messaging.service";
+import { generateLineAiReply } from "../../src/lib/services/line-ai-assistant.service";
 import { GET as getConfigRoute } from "../../src/app/api/line/config/route";
 import { GET as getInboxRoute } from "../../src/app/api/line/inbox/route";
 import { POST as postWebhookRoute } from "../../src/app/api/line/webhook/route";
@@ -151,7 +152,35 @@ export async function runLineIntegrationTests(): Promise<void> {
   );
   assert.equal(simRes.status, 200);
 
-  console.log("  ✓ LINE OA Signature, Flex Message Builder, Inbox Queue, API Routes & Multi-Page Merge passed");
+  // 6. Test Smart LINE AI Receptionist (Returning User Greeting, Status Check & DB Q&A)
+  const greetingReply = await generateLineAiReply("สวัสดีครับ", "ภก. สมชาย (รพ.ตำรวจ)");
+  assert.equal(greetingReply.replyText.includes("ภก. สมชาย"), true);
+  assert.equal(greetingReply.quickReplyItems.length >= 3, true);
+
+  const statusReply = await generateLineAiReply("เช็คสถานะเอกสารล่าสุด", "ภก. สมชาย (รพ.ตำรวจ)");
+  assert.equal(statusReply.replyText.includes("3001275083"), true);
+
+  const qaReply = await generateLineAiReply(
+    "ใบส่งของ โรงพยาบาลตำรวจ ยอดเท่าไหร่และมี Lot อะไรบ้าง",
+    "ภก. สมชาย (รพ.ตำรวจ)"
+  );
+  assert.equal(qaReply.replyText.includes("3001275083"), true);
+  assert.equal(qaReply.replyText.includes("K685238"), true);
+
+  const chatSimRes = await postWebhookRoute(
+    new Request("http://localhost:3000/api/line/webhook", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-line-simulator": "1" },
+      body: JSON.stringify({
+        messageType: "text",
+        chatText: "สวัสดีครับ วันนี้มีเอกสารอะไรบ้าง",
+        senderName: "ภก. สมชาย (รพ.ตำรวจ)",
+      }),
+    })
+  );
+  assert.equal(chatSimRes.status, 200);
+
+  console.log("  ✓ LINE OA Signature, Flex Message Builder, AI Receptionist, Inbox Queue & Multi-Page Merge passed");
 }
 
 function inboxListCountCheck(list: unknown[]): boolean {

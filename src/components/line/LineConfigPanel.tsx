@@ -16,7 +16,7 @@ import { LineWebhookSimulator } from "./LineWebhookSimulator";
 import { LineInboxFeed } from "./LineInboxFeed";
 
 interface LineConfigPanelProps {
-  onDocumentReceived: (doc: SavedDocumentRecord) => Promise<void>;
+  onDocumentReceived: (doc?: SavedDocumentRecord) => Promise<void>;
   onOpenInWorkspace: (doc: SavedDocumentRecord) => void;
   onOpenBillingInWorkspace: (billingNo: string) => void;
 }

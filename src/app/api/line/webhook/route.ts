@@ -7,6 +7,7 @@ import { validateDeliveryDocument } from "@/lib/domain/document-validator";
 import { LineWebhookBodySchema } from "@/lib/schemas/line.schema";
 import { extractGpoDocumentFromImage } from "@/lib/services/gemini-ocr.service";
 import { buildDeliveryDocumentFlexMessage } from "@/lib/services/line-flex.builder";
+import { generateLineAiReply } from "@/lib/services/line-ai-assistant.service";
 import { processLineWebhookEvents } from "@/lib/services/line-webhook.processor";
 
 export const dynamic = "force-dynamic";
@@ -32,13 +33,36 @@ export async function POST(request: Request) {
       const simBody = (await request.json()) as {
         sampleId?: string;
         senderName?: string;
-        messageType?: "image" | "file";
+        messageType?: "image" | "file" | "text";
+        chatText?: string;
       };
-      const sampleId = simBody.sampleId || "sample-4";
       const senderName = simBody.senderName || "ภก. สมชาย (รพ.ตำรวจ)";
       const msgType = simBody.messageType || "image";
-      const simMsgId = `sim-${sampleId}-${Date.now()}`;
+      const simMsgId = `sim-${msgType}-${Date.now()}`;
 
+      if (msgType === "text") {
+        const userText = simBody.chatText?.trim() || "สวัสดีครับ วันนี้ทำอะไรได้บ้าง";
+        const aiReply = await generateLineAiReply(userText, senderName);
+        const inboxItem = await createOrUpdateLineInboxItem({
+          lineMessageId: simMsgId,
+          messageType: "text",
+          fileName: userText,
+          lineUserId: "U_SIMULATED_LINE_USER",
+          lineDisplayName: senderName,
+          ocrStatus: "COMPLETED",
+          billingNo: aiReply.matchedBillingNo,
+          customerName: `AI ตอบกลับแชท (${userText.slice(0, 35)})`,
+        });
+
+        return NextResponse.json({
+          ok: true,
+          simulated: true,
+          inboxItem,
+          aiReply,
+        });
+      }
+
+      const sampleId = simBody.sampleId || "sample-4";
       const extracted = await extractGpoDocumentFromImage({
         sampleId,
         imageUrl: `/samples/gpo-${sampleId}.jpg`,

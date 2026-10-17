@@ -84,6 +84,10 @@ export function LineInboxFeed({
                         <FileText className="h-3 w-3" />
                         <span>PDF / FILE ({msg.fileName || "document.pdf"})</span>
                       </span>
+                    ) : msg.messageType === "text" ? (
+                      <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-800">
+                        <span>💬 CHAT: &ldquo;{msg.fileName || "ทักทาย"}&rdquo;</span>
+                      </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-700">
                         <ImageIcon className="h-3 w-3" />
@@ -94,7 +98,8 @@ export function LineInboxFeed({
                   <td className="px-4 py-3">
                     {msg.ocrStatus === "COMPLETED" && (
                       <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-bold text-emerald-800">
-                        <CheckCircle2 className="h-3 w-3" /> สกัด OCR สำเร็จ
+                        <CheckCircle2 className="h-3 w-3" />{" "}
+                        {msg.messageType === "text" ? "AI ตอบกลับแล้ว" : "สกัด OCR สำเร็จ"}
                       </span>
                     )}
                     {msg.ocrStatus === "PROCESSING" && (
