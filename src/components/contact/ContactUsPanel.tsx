@@ -61,7 +61,7 @@ export function ContactUsPanel({ canEdit = false }: ContactUsPanelProps) {
       setProfile(data.profile);
       setDraft(data.profile);
       setIsEditing(false);
-      setFeedback({ type: "ok", text: "บันทึกข้อมูลติดต่อ ITE Compute เรียบร้อยแล้ว" });
+      setFeedback({ type: "ok", text: "บันทึกข้อมูลติดต่อ ITE Computer เรียบร้อยแล้ว" });
     } catch (err: unknown) {
       setFeedback({
         type: "err",

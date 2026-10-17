@@ -1,23 +1,23 @@
 import { z } from "zod";
 
 export const DEFAULT_CONTACT_PROFILE = {
-  companyName: "ITE Compute",
+  companyName: "ITE Computer",
   tagline:
     "ผู้เชี่ยวชาญด้านระบบเทคโนโลยีสารสนเทศ ซอฟต์แวร์องค์กร และระบบสกัดข้อมูลเอกสารอัจฉริยะ (AI OCR Solutions)",
   phone: "02-XXX-XXXX, 08X-XXX-XXXX",
-  email: "contact@itecompute.com",
+  email: "contact@itecomputer.com",
   address: "กรุงเทพมหานคร ประเทศไทย",
   businessHours: "จันทร์ - ศุกร์ 08:30 - 17:30 น.",
-  websiteUrl: "https://www.itecompute.com",
-  websiteLabel: "www.itecompute.com",
+  websiteUrl: "https://www.itecomputer.com",
+  websiteLabel: "www.itecomputer.com",
   lineUrl: "https://lin.ee/zW8Iu4s",
-  lineLabel: "@itecompute",
-  facebookUrl: "https://www.facebook.com/itecompute",
-  facebookLabel: "ITE Compute",
-  instagramUrl: "https://www.instagram.com/itecompute",
-  instagramLabel: "@itecompute",
-  tiktokUrl: "https://www.tiktok.com/@itecompute",
-  tiktokLabel: "@itecompute",
+  lineLabel: "@itecomputer",
+  facebookUrl: "https://www.facebook.com/itecomputer",
+  facebookLabel: "ITE Computer",
+  instagramUrl: "https://www.instagram.com/itecomputer",
+  instagramLabel: "@itecomputer",
+  tiktokUrl: "https://www.tiktok.com/@itecomputer",
+  tiktokLabel: "@itecomputer",
 } as const;
 
 export const ContactProfileInputSchema = z.object({

@@ -159,7 +159,7 @@ export function LoginGate({ onLogin }: LoginGateProps) {
             className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-teal-200 bg-teal-50/70 px-4 py-2 text-xs font-semibold text-teal-800 transition hover:bg-teal-100"
           >
             <Building2 className="h-4 w-4 text-teal-700" />
-            <span>ติดต่อเรา (ITE Compute) • Website / LINE / FB / IG / TikTok</span>
+            <span>ติดต่อเรา (ITE Computer) • Website / LINE / FB / IG / TikTok</span>
           </button>
         </div>
       </div>

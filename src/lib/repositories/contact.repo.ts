@@ -94,6 +94,13 @@ export async function getContactProfile(): Promise<ContactProfileRecord> {
   });
 
   if (existing) {
+    if (existing.companyName === "ITE Compute") {
+      const migrated = await prisma.contactProfile.update({
+        where: { id: "default" },
+        data: { ...DEFAULT_CONTACT_PROFILE },
+      });
+      return mapEntityToRecord(migrated);
+    }
     return mapEntityToRecord(existing);
   }
 

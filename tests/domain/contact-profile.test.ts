@@ -13,9 +13,10 @@ import {
 } from "../../src/app/api/contact/route";
 
 export async function runContactProfileTests(): Promise<void> {
-  // 1. Validate default ITE Compute profile schema
+  // 1. Validate default ITE Computer profile schema
   const parsedDefault = ContactProfileInputSchema.safeParse(DEFAULT_CONTACT_PROFILE);
-  assert.equal(parsedDefault.success, true, "Default ITE Compute contact profile must pass Zod validation");
+  assert.equal(parsedDefault.success, true, "Default ITE Computer contact profile must pass Zod validation");
+  assert.equal(DEFAULT_CONTACT_PROFILE.companyName, "ITE Computer");
 
   // 2. Reject invalid URLs or empty company name
   const invalidUrl = ContactProfileInputSchema.safeParse({
@@ -30,9 +31,9 @@ export async function runContactProfileTests(): Promise<void> {
   });
   assert.equal(emptyName.success, false, "Blank companyName must fail Zod validation");
 
-  // 3. Repository getContactProfile seeds default ITE Compute record
+  // 3. Repository getContactProfile seeds/migrates default ITE Computer record
   const initialProfile = await getContactProfile();
-  assert.equal(initialProfile.companyName.includes("ITE"), true);
+  assert.equal(initialProfile.companyName, "ITE Computer");
   assert.equal(initialProfile.websiteUrl.startsWith("http"), true);
   assert.equal(initialProfile.lineUrl.startsWith("http"), true);
   assert.equal(initialProfile.facebookUrl.startsWith("http"), true);
@@ -42,26 +43,26 @@ export async function runContactProfileTests(): Promise<void> {
   // 4. Repository saveContactProfile updates all 5 social links and company details
   const updatedProfile = await saveContactProfile({
     ...DEFAULT_CONTACT_PROFILE,
-    companyName: "ITE Compute",
-    websiteUrl: "https://www.itecompute.com",
-    websiteLabel: "www.itecompute.com",
+    companyName: "ITE Computer",
+    websiteUrl: "https://www.itecomputer.com",
+    websiteLabel: "www.itecomputer.com",
     lineUrl: "https://lin.ee/zW8Iu4s",
-    lineLabel: "@itecompute",
-    facebookUrl: "https://www.facebook.com/itecompute",
-    facebookLabel: "ITE Compute",
-    instagramUrl: "https://www.instagram.com/itecompute",
-    instagramLabel: "@itecompute",
-    tiktokUrl: "https://www.tiktok.com/@itecompute",
-    tiktokLabel: "@itecompute",
+    lineLabel: "@itecomputer",
+    facebookUrl: "https://www.facebook.com/itecomputer",
+    facebookLabel: "ITE Computer",
+    instagramUrl: "https://www.instagram.com/itecomputer",
+    instagramLabel: "@itecomputer",
+    tiktokUrl: "https://www.tiktok.com/@itecomputer",
+    tiktokLabel: "@itecomputer",
   });
-  assert.equal(updatedProfile.companyName, "ITE Compute");
-  assert.equal(updatedProfile.tiktokLabel, "@itecompute");
+  assert.equal(updatedProfile.companyName, "ITE Computer");
+  assert.equal(updatedProfile.tiktokLabel, "@itecomputer");
 
   // 5. API Route GET & PUT /api/contact
   const getRes = await getContactRoute();
   assert.equal(getRes.status, 200);
   const getBody = (await getRes.json()) as { profile: { companyName: string } };
-  assert.equal(getBody.profile.companyName, "ITE Compute");
+  assert.equal(getBody.profile.companyName, "ITE Computer");
 
   const badPutRes = await putContactRoute(
     new Request("http://localhost:3000/api/contact", {
@@ -81,5 +82,5 @@ export async function runContactProfileTests(): Promise<void> {
   );
   assert.equal(okPutRes.status, 200);
 
-  console.log("  ✓ ITE Compute Contact Profile Schema, Repository & API Routes passed");
+  console.log("  ✓ ITE Computer Contact Profile Schema, Repository & API Routes passed");
 }
