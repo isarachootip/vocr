@@ -1,15 +1,35 @@
 import { prisma } from "../db/prisma";
+import { normalizeUserRole } from "../auth/permissions";
 import type {
   SessionUser,
   UserAccountRecord,
   UserCreateInput,
+  UserRoleType,
   UserUpdateInput,
 } from "../schemas/auth.schema";
+
+let roleEnumEnsured = false;
+
+async function ensureUserRoleEnumSchema(): Promise<void> {
+  if (roleEnumEnsured) return;
+  try {
+    await prisma.$executeRawUnsafe(
+      `ALTER TYPE "UserRole" ADD VALUE IF NOT EXISTS 'SYSADMIN';`
+    );
+    await prisma.$executeRawUnsafe(
+      `ALTER TYPE "UserRole" ADD VALUE IF NOT EXISTS 'USER';`
+    );
+    roleEnumEnsured = true;
+  } catch {
+    // Ignore if already added
+  }
+}
 
 function toUserRecord(row: {
   id: string;
   email: string;
   passwordHash: string;
+  role: string;
   createdAt: Date;
   updatedAt: Date;
 }): UserAccountRecord {
@@ -17,25 +37,48 @@ function toUserRecord(row: {
     id: row.id,
     username: row.email,
     password: row.passwordHash,
+    role: normalizeUserRole(row.role),
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
 }
 
-export async function ensureDefaultAdminUser(): Promise<void> {
-  const existingAdmin = await prisma.user.findUnique({
-    where: { email: "admin" },
-  });
+const DEFAULT_SEED_USERS: Array<{
+  username: string;
+  password: string;
+  role: UserRoleType;
+}> = [
+  { username: "sysadmin", password: "1234", role: "SYSADMIN" },
+  { username: "admin", password: "1234", role: "ADMIN" },
+  { username: "user", password: "1234", role: "USER" },
+];
 
-  if (!existingAdmin) {
-    await prisma.user.create({
-      data: {
-        email: "admin",
-        name: "admin",
-        passwordHash: "1234",
-        role: "ADMIN",
-      },
+export async function ensureDefaultAdminUser(): Promise<void> {
+  await ensureUserRoleEnumSchema();
+
+  for (const seed of DEFAULT_SEED_USERS) {
+    const existing = await prisma.user.findUnique({
+      where: { email: seed.username },
     });
+
+    if (!existing) {
+      await prisma.user.create({
+        data: {
+          email: seed.username,
+          name: seed.username,
+          passwordHash: seed.password,
+          role: seed.role,
+        },
+      });
+    } else if (
+      seed.username === "sysadmin" &&
+      normalizeUserRole(existing.role) !== "SYSADMIN"
+    ) {
+      await prisma.user.update({
+        where: { id: existing.id },
+        data: { role: "SYSADMIN" },
+      });
+    }
   }
 }
 
@@ -61,7 +104,7 @@ export async function verifyUserCredentials(
     username: dbUser.email,
     email: dbUser.email,
     name: dbUser.name,
-    role: "ADMIN",
+    role: normalizeUserRole(dbUser.role),
   };
 }
 
@@ -76,8 +119,10 @@ export async function listUsers(): Promise<UserAccountRecord[]> {
 export async function createUser(
   input: UserCreateInput
 ): Promise<UserAccountRecord> {
+  await ensureUserRoleEnumSchema();
   const username = input.username.trim();
   const password = input.password.trim();
+  const role = normalizeUserRole(input.role);
 
   const existing = await prisma.user.findUnique({
     where: { email: username },
@@ -91,7 +136,7 @@ export async function createUser(
       email: username,
       name: username,
       passwordHash: password,
-      role: "ADMIN",
+      role,
     },
   });
 
@@ -101,8 +146,10 @@ export async function createUser(
 export async function updateUser(
   input: UserUpdateInput
 ): Promise<UserAccountRecord> {
+  await ensureUserRoleEnumSchema();
   const username = input.username.trim();
   const password = input.password.trim();
+  const role = normalizeUserRole(input.role);
 
   const conflict = await prisma.user.findFirst({
     where: {
@@ -120,7 +167,7 @@ export async function updateUser(
       email: username,
       name: username,
       passwordHash: password,
-      role: "ADMIN",
+      role,
     },
   });
 

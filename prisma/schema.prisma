@@ -8,9 +8,11 @@ datasource db {
 }
 
 enum UserRole {
+  SYSADMIN
+  ADMIN
+  USER
   UPLOADER
   REVIEWER
-  ADMIN
 }
 
 enum DocumentStatus {
@@ -24,7 +26,7 @@ model User {
   email             String             @unique
   name              String
   passwordHash      String             @map("password_hash")
-  role              UserRole           @default(REVIEWER)
+  role              UserRole           @default(USER)
   createdAt         DateTime           @default(now()) @map("created_at")
   updatedAt         DateTime           @updatedAt @map("updated_at")
   uploadedDocuments DeliveryDocument[] @relation("UploadedBy")

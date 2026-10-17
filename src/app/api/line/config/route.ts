@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getSessionUser, hasRequiredRole } from "@/lib/auth/session";
 import {
   getLineOaConfig,
   saveLineOaConfig,
@@ -10,6 +11,14 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   try {
+    const sessionUser = await getSessionUser();
+    if (!hasRequiredRole(sessionUser, ["SYSADMIN"])) {
+      return NextResponse.json(
+        { error: "เฉพาะ SYSADMIN เท่านั้นที่สามารถเข้าถึงการตั้งค่า LINE OA ได้" },
+        { status: 403 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const shouldVerify = searchParams.get("verify") !== "0";
 
@@ -31,6 +40,14 @@ export async function GET(request: Request) {
 
 export async function PUT(request: Request) {
   try {
+    const sessionUser = await getSessionUser();
+    if (!hasRequiredRole(sessionUser, ["SYSADMIN"])) {
+      return NextResponse.json(
+        { error: "เฉพาะ SYSADMIN เท่านั้นที่สามารถแก้ไขการตั้งค่า LINE OA ได้" },
+        { status: 403 }
+      );
+    }
+
     const body: unknown = await request.json();
     const parsed = LineOaConfigInputSchema.safeParse(body);
 

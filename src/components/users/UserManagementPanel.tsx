@@ -2,17 +2,32 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { UserPlus, Pencil, Trash2, Check, X, Eye, EyeOff, Users } from "lucide-react";
-import type { UserAccountRecord } from "@/lib/schemas/auth.schema";
+import type { UserAccountRecord, UserRoleType } from "@/lib/schemas/auth.schema";
+import { getAssignableRoles, canModifyTargetUser } from "@/lib/auth/permissions";
 
-export function UserManagementPanel() {
+interface UserManagementPanelProps {
+  currentUserRole?: UserRoleType;
+}
+
+const ROLE_LABELS: Record<UserRoleType, { text: string; badge: string }> = {
+  SYSADMIN: { text: "SYSADMIN (ผู้ดูแลระบบสูงสุด)", badge: "bg-purple-100 text-purple-800" },
+  ADMIN: { text: "ADMIN (ผู้ดูแลข้อมูล)", badge: "bg-teal-100 text-teal-800" },
+  USER: { text: "USER (ผู้ใช้งานทั่วไป)", badge: "bg-slate-100 text-slate-700" },
+};
+
+export function UserManagementPanel({ currentUserRole = "SYSADMIN" }: UserManagementPanelProps) {
   const [users, setUsers] = useState<UserAccountRecord[]>([]);
   const [newUsername, setNewUsername] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [newRole, setNewRole] = useState<UserRoleType>("USER");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editUsername, setEditUsername] = useState("");
   const [editPassword, setEditPassword] = useState("");
+  const [editRole, setEditRole] = useState<UserRoleType>("USER");
   const [showPasswords, setShowPasswords] = useState(false);
   const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+
+  const assignableRoles = getAssignableRoles(currentUserRole);
 
   const loadUsers = useCallback(async () => {
     const res = await fetch("/api/users");
@@ -32,13 +47,14 @@ export function UserManagementPanel() {
     const res = await fetch("/api/users", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: newUsername, password: newPassword }),
+      body: JSON.stringify({ username: newUsername, password: newPassword, role: newRole }),
     });
     const data = (await res.json()) as { error?: string };
     if (!res.ok) return setMsg({ type: "err", text: data.error || "เพิ่มผู้ใช้งานไม่สำเร็จ" });
     setNewUsername("");
     setNewPassword("");
-    setMsg({ type: "ok", text: `เพิ่มผู้ใช้งาน "${newUsername}" สำเร็จ` });
+    setNewRole("USER");
+    setMsg({ type: "ok", text: `เพิ่มผู้ใช้งาน "${newUsername}" (${newRole}) สำเร็จ` });
     await loadUsers();
   };
 
@@ -47,12 +63,12 @@ export function UserManagementPanel() {
     const res = await fetch("/api/users", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, username: editUsername, password: editPassword }),
+      body: JSON.stringify({ id, username: editUsername, password: editPassword, role: editRole }),
     });
     const data = (await res.json()) as { error?: string };
     if (!res.ok) return setMsg({ type: "err", text: data.error || "แก้ไขข้อมูลไม่สำเร็จ" });
     setEditingId(null);
-    setMsg({ type: "ok", text: `อัปเดตข้อมูลผู้ใช้งาน "${editUsername}" เรียบร้อยแล้ว` });
+    setMsg({ type: "ok", text: `อัปเดตข้อมูลผู้ใช้งาน "${editUsername}" (${editRole}) เรียบร้อยแล้ว` });
     await loadUsers();
   };
 
@@ -71,7 +87,9 @@ export function UserManagementPanel() {
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Users className="h-4 w-4 text-teal-700" />
-            <h2 className="text-sm font-bold text-slate-900">จัดการผู้ใช้งานระบบ (User / Password CRUD)</h2>
+            <h2 className="text-sm font-bold text-slate-900">
+              จัดการผู้ใช้งานและกำหนดสิทธิ์ (Role: SYSADMIN • ADMIN • USER)
+            </h2>
           </div>
           <button
             type="button"
@@ -92,29 +110,20 @@ export function UserManagementPanel() {
         <form onSubmit={handleCreate} className="flex flex-wrap items-end gap-3">
           <div>
             <label className="mb-1 block text-xs font-semibold text-slate-700">ชื่อผู้ใช้งานใหม่ (User)</label>
-            <input
-              type="text"
-              required
-              value={newUsername}
-              onChange={(e) => setNewUsername(e.target.value)}
-              placeholder="เช่น user01"
-              className="w-56 rounded-xl border border-slate-300 px-3 py-1.5 text-xs focus:border-teal-600 focus:outline-none"
-            />
+            <input type="text" required value={newUsername} onChange={(e) => setNewUsername(e.target.value)} placeholder="เช่น user01" className="w-48 rounded-xl border border-slate-300 px-3 py-1.5 text-xs focus:border-teal-600 focus:outline-none" />
           </div>
           <div>
             <label className="mb-1 block text-xs font-semibold text-slate-700">รหัสผ่าน (Password)</label>
-            <input
-              type="text"
-              required
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="กรอกรหัสผ่าน"
-              className="w-56 rounded-xl border border-slate-300 px-3 py-1.5 text-xs focus:border-teal-600 focus:outline-none"
-            />
+            <input type="text" required value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="กรอกรหัสผ่าน" className="w-48 rounded-xl border border-slate-300 px-3 py-1.5 text-xs focus:border-teal-600 focus:outline-none" />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-semibold text-slate-700">ระดับสิทธิ์ (Role)</label>
+            <select value={newRole} onChange={(e) => setNewRole(e.target.value as UserRoleType)} className="rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold focus:border-teal-600 focus:outline-none">
+              {assignableRoles.map((r) => <option key={r} value={r}>{ROLE_LABELS[r].text}</option>)}
+            </select>
           </div>
           <button type="submit" className="inline-flex items-center gap-1.5 rounded-xl bg-teal-700 px-4 py-1.5 text-xs font-semibold text-white hover:bg-teal-800">
-            <UserPlus className="h-3.5 w-3.5" />
-            <span>เพิ่มผู้ใช้งาน</span>
+            <UserPlus className="h-3.5 w-3.5" /> <span>เพิ่มผู้ใช้งาน</span>
           </button>
         </form>
       </div>
@@ -126,48 +135,47 @@ export function UserManagementPanel() {
               <th className="px-4 py-3">ลำดับ</th>
               <th className="px-4 py-3">ชื่อผู้ใช้งาน (User)</th>
               <th className="px-4 py-3">รหัสผ่าน (Password)</th>
+              <th className="px-4 py-3">ระดับสิทธิ์ (Role)</th>
               <th className="px-4 py-3 text-right">จัดการ (แก้ไข / ลบ)</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {users.map((u, idx) => (
-              <tr key={u.id} className="hover:bg-slate-50">
-                <td className="px-4 py-3 font-mono text-slate-500">{idx + 1}</td>
-                <td className="px-4 py-3 font-semibold text-slate-900">
-                  {editingId === u.id ? (
-                    <input type="text" value={editUsername} onChange={(e) => setEditUsername(e.target.value)} className="w-48 rounded-lg border border-teal-500 px-2.5 py-1 text-xs" />
-                  ) : (
-                    u.username
-                  )}
-                </td>
-                <td className="px-4 py-3 font-mono text-slate-700">
-                  {editingId === u.id ? (
-                    <input type="text" value={editPassword} onChange={(e) => setEditPassword(e.target.value)} className="w-48 rounded-lg border border-teal-500 px-2.5 py-1 text-xs" />
-                  ) : showPasswords ? u.password : "••••••••"}
-                </td>
-                <td className="px-4 py-3 text-right">
-                  {editingId === u.id ? (
-                    <div className="inline-flex items-center gap-1.5">
-                      <button type="button" onClick={() => void handleSaveEdit(u.id)} className="inline-flex items-center gap-1 rounded-lg bg-emerald-700 px-2.5 py-1 text-xs font-semibold text-white hover:bg-emerald-800">
-                        <Check className="h-3.5 w-3.5" /> บันทึก
-                      </button>
-                      <button type="button" onClick={() => setEditingId(null)} className="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs text-slate-700 hover:bg-slate-100">
-                        <X className="h-3.5 w-3.5" /> ยกเลิก
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="inline-flex items-center gap-1.5">
-                      <button type="button" onClick={() => { setEditingId(u.id); setEditUsername(u.username); setEditPassword(u.password); }} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100">
-                        <Pencil className="h-3.5 w-3.5 text-teal-600" /> แก้ไข
-                      </button>
-                      <button type="button" disabled={users.length <= 1} onClick={() => void handleDelete(u)} className="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-medium text-rose-700 hover:bg-rose-100 disabled:opacity-40">
-                        <Trash2 className="h-3.5 w-3.5" /> ลบ
-                      </button>
-                    </div>
-                  )}
-                </td>
-              </tr>
-            ))}
+            {users.map((u, idx) => {
+              const canModify = canModifyTargetUser(currentUserRole, u.role);
+              return (
+                <tr key={u.id} className="hover:bg-slate-50">
+                  <td className="px-4 py-3 font-mono text-slate-500">{idx + 1}</td>
+                  <td className="px-4 py-3 font-semibold text-slate-900">
+                    {editingId === u.id ? <input type="text" value={editUsername} onChange={(e) => setEditUsername(e.target.value)} className="w-40 rounded-lg border border-teal-500 px-2.5 py-1 text-xs" /> : u.username}
+                  </td>
+                  <td className="px-4 py-3 font-mono text-slate-700">
+                    {editingId === u.id ? <input type="text" value={editPassword} onChange={(e) => setEditPassword(e.target.value)} className="w-40 rounded-lg border border-teal-500 px-2.5 py-1 text-xs" /> : showPasswords ? u.password : "••••••••"}
+                  </td>
+                  <td className="px-4 py-3">
+                    {editingId === u.id ? (
+                      <select value={editRole} onChange={(e) => setEditRole(e.target.value as UserRoleType)} className="rounded-lg border border-teal-500 bg-white px-2.5 py-1 text-xs font-semibold">
+                        {assignableRoles.map((r) => <option key={r} value={r}>{ROLE_LABELS[r].text}</option>)}
+                      </select>
+                    ) : (
+                      <span className={`inline-block rounded-full px-2.5 py-0.5 text-[11px] font-bold ${ROLE_LABELS[u.role]?.badge || ROLE_LABELS.USER.badge}`}>{u.role}</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    {editingId === u.id ? (
+                      <div className="inline-flex items-center gap-1.5">
+                        <button type="button" onClick={() => void handleSaveEdit(u.id)} className="inline-flex items-center gap-1 rounded-lg bg-emerald-700 px-2.5 py-1 text-xs font-semibold text-white hover:bg-emerald-800"><Check className="h-3.5 w-3.5" /> บันทึก</button>
+                        <button type="button" onClick={() => setEditingId(null)} className="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-xs text-slate-700 hover:bg-slate-100"><X className="h-3.5 w-3.5" /> ยกเลิก</button>
+                      </div>
+                    ) : canModify ? (
+                      <div className="inline-flex items-center gap-1.5">
+                        <button type="button" onClick={() => { setEditingId(u.id); setEditUsername(u.username); setEditPassword(u.password); setEditRole(u.role); }} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100"><Pencil className="h-3.5 w-3.5 text-teal-600" /> แก้ไข</button>
+                        <button type="button" disabled={users.length <= 1} onClick={() => void handleDelete(u)} className="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-medium text-rose-700 hover:bg-rose-100 disabled:opacity-40"><Trash2 className="h-3.5 w-3.5" /> ลบ</button>
+                      </div>
+                    ) : <span className="text-[11px] text-slate-400">สงวนสิทธิ์ SYSADMIN</span>}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

@@ -12,15 +12,14 @@ import {
   MessageCircle,
   Building2,
 } from "lucide-react";
-import type { SessionUser } from "@/lib/schemas/auth.schema";
+import type { SessionUser, UserRoleType } from "@/lib/schemas/auth.schema";
+import {
+  getAllowedTabsForRole,
+  canManageSystemConfig,
+  type AppTab,
+} from "@/lib/auth/permissions";
 
-export type ActiveTab =
-  | "WORKSPACE"
-  | "EXPLORER"
-  | "MASTER_DATA"
-  | "USERS"
-  | "LINE_OA"
-  | "CONTACT";
+export type ActiveTab = AppTab;
 
 interface TopNavBarProps {
   activeTab: ActiveTab;
@@ -33,6 +32,12 @@ interface TopNavBarProps {
   savedCount: number;
 }
 
+const ROLE_BADGE_STYLE: Record<UserRoleType, string> = {
+  SYSADMIN: "bg-purple-100 text-purple-800 border-purple-200",
+  ADMIN: "bg-teal-100 text-teal-800 border-teal-200",
+  USER: "bg-slate-200 text-slate-700 border-slate-300",
+};
+
 export function TopNavBar({
   activeTab,
   onSelectTab,
@@ -44,6 +49,8 @@ export function TopNavBar({
   savedCount,
 }: TopNavBarProps) {
   const [showKeyInput, setShowKeyInput] = useState(false);
+  const allowedTabs = getAllowedTabsForRole(user.role);
+  const canConfigSystem = canManageSystemConfig(user.role);
 
   const navItems: Array<{
     tab: ActiveTab;
@@ -68,16 +75,8 @@ export function TopNavBar({
       badge: savedCount,
       badgeClass: "bg-slate-200 text-slate-700",
     },
-    {
-      tab: "MASTER_DATA",
-      label: "3. ฐานข้อมูลลูกค้า & ยา",
-      icon: <Database className="h-4 w-4" />,
-    },
-    {
-      tab: "USERS",
-      label: "4. จัดการผู้ใช้งาน",
-      icon: <Users className="h-4 w-4" />,
-    },
+    { tab: "MASTER_DATA", label: "3. ฐานข้อมูลลูกค้า & ยา", icon: <Database className="h-4 w-4" /> },
+    { tab: "USERS", label: "4. จัดการผู้ใช้งาน", icon: <Users className="h-4 w-4" /> },
     {
       tab: "LINE_OA",
       label: "5. ตั้งค่า LINE OA",
@@ -85,12 +84,10 @@ export function TopNavBar({
       activeClass: "bg-emerald-600 text-white shadow-sm",
       inactiveClass: "text-emerald-700 hover:bg-emerald-50",
     },
-    {
-      tab: "CONTACT",
-      label: "6. ติดต่อเรา",
-      icon: <Building2 className="h-4 w-4" />,
-    },
+    { tab: "CONTACT", label: "6. ติดต่อเรา", icon: <Building2 className="h-4 w-4" /> },
   ];
+
+  const visibleNavItems = navItems.filter((item) => allowedTabs.includes(item.tab));
 
   return (
     <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
@@ -100,9 +97,7 @@ export function TopNavBar({
             <ScanLine className="h-5 w-5" />
           </div>
           <div>
-            <h1 className="text-base font-bold text-slate-900">
-              GPO Delivery Note OCR System
-            </h1>
+            <h1 className="text-base font-bold text-slate-900">GPO Delivery Note OCR System</h1>
             <p className="text-xs text-slate-500">
               ระบบสกัดข้อมูลใบส่งขององค์การเภสัชกรรม 3 ระดับ (Header • Items • Lots)
             </p>
@@ -110,7 +105,7 @@ export function TopNavBar({
         </div>
 
         <nav className="flex flex-wrap items-center gap-1 rounded-xl bg-slate-100 p-1">
-          {navItems.map((item) => {
+          {visibleNavItems.map((item) => {
             const isActive = activeTab === item.tab;
             const styleClass = isActive
               ? item.activeClass || "bg-white text-teal-800 shadow-sm"
@@ -125,9 +120,7 @@ export function TopNavBar({
                 {item.icon}
                 <span>{item.label}</span>
                 {item.badge !== undefined && (
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${item.badgeClass}`}
-                  >
+                  <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${item.badgeClass}`}>
                     {item.badge}
                   </span>
                 )}
@@ -137,19 +130,22 @@ export function TopNavBar({
         </nav>
 
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setShowKeyInput((prev) => !prev)}
-            className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100"
-          >
-            <KeyRound className="h-3.5 w-3.5 text-teal-600" />
-            <span>{apiKey ? "ตั้งค่า Gemini Key แล้ว" : "Gemini API Key"}</span>
-          </button>
+          {canConfigSystem && (
+            <button
+              type="button"
+              onClick={() => setShowKeyInput((prev) => !prev)}
+              className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100"
+            >
+              <KeyRound className="h-3.5 w-3.5 text-teal-600" />
+              <span>{apiKey ? "ตั้งค่า Gemini Key แล้ว" : "Gemini API Key"}</span>
+            </button>
+          )}
 
           <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs">
             <UserCheck className="h-3.5 w-3.5 text-teal-700" />
-            <span className="font-semibold text-slate-800">
-              User: {user.username || user.email}
+            <span className="font-semibold text-slate-800">{user.username || user.email}</span>
+            <span className={`rounded-md border px-1.5 py-0.5 text-[10px] font-bold ${ROLE_BADGE_STYLE[user.role] || ROLE_BADGE_STYLE.USER}`}>
+              {user.role}
             </span>
             <button
               type="button"
@@ -163,7 +159,7 @@ export function TopNavBar({
         </div>
       </div>
 
-      {showKeyInput && (
+      {canConfigSystem && showKeyInput && (
         <div className="border-t border-slate-100 bg-slate-50 px-4 py-2">
           <div className="mx-auto flex max-w-[1600px] items-center gap-3 text-xs">
             <span className="font-medium text-slate-700">Gemini API Key:</span>

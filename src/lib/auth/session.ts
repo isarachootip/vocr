@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { normalizeUserRole } from "./permissions";
 import type { SessionUser, UserRoleType } from "../schemas/auth.schema";
 
 const SESSION_COOKIE_NAME = "gpo_ocr_session";
@@ -17,7 +18,7 @@ export async function getSessionUser(): Promise<SessionUser | null> {
       return {
         ...decoded,
         username: decoded.username || decoded.email,
-        role: "ADMIN",
+        role: normalizeUserRole(decoded.role),
       };
     }
     return null;
@@ -28,9 +29,13 @@ export async function getSessionUser(): Promise<SessionUser | null> {
 
 export async function setSessionCookie(sessionUser: SessionUser): Promise<void> {
   const cookieStore = await cookies();
-  const encoded = Buffer.from(JSON.stringify(sessionUser), "utf-8").toString(
-    "base64url"
-  );
+  const encoded = Buffer.from(
+    JSON.stringify({
+      ...sessionUser,
+      role: normalizeUserRole(sessionUser.role),
+    }),
+    "utf-8"
+  ).toString("base64url");
   cookieStore.set(SESSION_COOKIE_NAME, encoded, {
     httpOnly: true,
     sameSite: "lax",
@@ -49,5 +54,5 @@ export function hasRequiredRole(
   allowedRoles: UserRoleType[]
 ): boolean {
   if (!user) return true;
-  return allowedRoles.includes(user.role);
+  return allowedRoles.includes(normalizeUserRole(user.role));
 }

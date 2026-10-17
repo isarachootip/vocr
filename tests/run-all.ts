@@ -6,6 +6,7 @@ import { runDatabaseIntegrationTests } from "./integration/db-seed.test";
 import { runUserCrudTests } from "./integration/user-crud.test";
 import { runLineIntegrationTests } from "./domain/line-integration.test";
 import { runContactProfileTests } from "./domain/contact-profile.test";
+import { runRbacPermissionsTests } from "./domain/rbac-permissions.test";
 
 async function main(): Promise<void> {
   console.log("Running GPO OCR Domain & Database Test Suite...");
@@ -13,6 +14,7 @@ async function main(): Promise<void> {
   runDocumentValidatorTests();
   runDocumentMergerTests();
   runOcrNormalizerTests();
+  runRbacPermissionsTests();
   await runDatabaseIntegrationTests();
   await runUserCrudTests();
   await runLineIntegrationTests();

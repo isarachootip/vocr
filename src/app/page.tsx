@@ -11,6 +11,11 @@ import { UserManagementPanel } from "@/components/users/UserManagementPanel";
 import { LineConfigPanel } from "@/components/line/LineConfigPanel";
 import { ContactUsPanel } from "@/components/contact/ContactUsPanel";
 import { useOcrDashboard } from "@/hooks/useOcrDashboard";
+import {
+  canAccessTab,
+  canDeleteDocuments,
+  canEditContactProfile,
+} from "@/lib/auth/permissions";
 
 export default function HomePage() {
   const {
@@ -51,11 +56,19 @@ export default function HomePage() {
     return <LoginGate onLogin={handleLogin} />;
   }
 
+  const effectiveTab = canAccessTab(user.role, activeTab)
+    ? activeTab
+    : "WORKSPACE";
+
   return (
     <div className="min-h-screen bg-slate-50 pb-16">
       <TopNavBar
-        activeTab={activeTab}
-        onSelectTab={setActiveTab}
+        activeTab={effectiveTab}
+        onSelectTab={(tab) => {
+          if (canAccessTab(user.role, tab)) {
+            setActiveTab(tab);
+          }
+        }}
         user={user}
         onLogout={handleLogout}
         apiKey={apiKey}
@@ -77,7 +90,7 @@ export default function HomePage() {
           </div>
         )}
 
-        {activeTab === "WORKSPACE" && (
+        {effectiveTab === "WORKSPACE" && (
           <>
             <BatchDropzone
               isExtracting={isExtracting}
@@ -115,7 +128,7 @@ export default function HomePage() {
           </>
         )}
 
-        {activeTab === "EXPLORER" && (
+        {effectiveTab === "EXPLORER" && (
           <DocumentExplorerView
             documents={savedDocs}
             onRefresh={fetchDocuments}
@@ -128,20 +141,22 @@ export default function HomePage() {
               await fetch(`/api/documents?id=${id}`, { method: "DELETE" });
               await fetchDocuments();
             }}
-            canDelete={true}
+            canDelete={canDeleteDocuments(user.role)}
           />
         )}
 
-        {activeTab === "MASTER_DATA" && (
+        {effectiveTab === "MASTER_DATA" && (
           <MasterDataPanel
             customers={masterData.customers}
             products={masterData.products}
           />
         )}
 
-        {activeTab === "USERS" && <UserManagementPanel />}
+        {effectiveTab === "USERS" && (
+          <UserManagementPanel currentUserRole={user.role} />
+        )}
 
-        {activeTab === "LINE_OA" && (
+        {effectiveTab === "LINE_OA" && (
           <LineConfigPanel
             onDocumentReceived={async () => {
               await fetchDocuments();
@@ -162,7 +177,9 @@ export default function HomePage() {
           />
         )}
 
-        {activeTab === "CONTACT" && <ContactUsPanel canEdit={true} />}
+        {effectiveTab === "CONTACT" && (
+          <ContactUsPanel canEdit={canEditContactProfile(user.role)} />
+        )}
       </main>
     </div>
   );

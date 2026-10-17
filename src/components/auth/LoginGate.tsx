@@ -8,8 +8,14 @@ interface LoginGateProps {
   onLogin: (username: string, password: string) => Promise<string | null>;
 }
 
+const DEMO_ACCOUNTS = [
+  { username: "sysadmin", label: "SYSADMIN", desc: "เห็นทุกเมนู + ตั้งค่า LINE/Key" },
+  { username: "admin", label: "ADMIN", desc: "จัดการข้อมูล & ผู้ใช้ (ไม่เห็นตั้งค่าระบบ)" },
+  { username: "user", label: "USER", desc: "สกัด & ดูเอกสาร (ไม่เห็นเมนู Config)" },
+] as const;
+
 export function LoginGate({ onLogin }: LoginGateProps) {
-  const [username, setUsername] = useState("admin");
+  const [username, setUsername] = useState("sysadmin");
   const [password, setPassword] = useState("1234");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -60,7 +66,7 @@ export function LoginGate({ onLogin }: LoginGateProps) {
             GPO Delivery Note OCR System
           </h1>
           <p className="mt-1 text-xs text-slate-500">
-            กรุณาเข้าสู่ระบบด้วย User และ Password เพื่อใช้งานระบบ
+            กรุณาเข้าสู่ระบบตามระดับสิทธิ์ (SYSADMIN • ADMIN • USER)
           </p>
         </div>
 
@@ -82,7 +88,7 @@ export function LoginGate({ onLogin }: LoginGateProps) {
                 required
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="เช่น admin"
+                placeholder="เช่น sysadmin, admin, user"
                 className="w-full rounded-xl border border-slate-300 py-2 pl-9 pr-3 text-sm focus:border-teal-600 focus:outline-none"
               />
             </div>
@@ -119,11 +125,31 @@ export function LoginGate({ onLogin }: LoginGateProps) {
           </button>
         </form>
 
-        <div className="mt-5 rounded-xl bg-slate-50 p-3 text-center text-[11px] text-slate-500">
-          บัญชีเริ่มต้น: <span className="font-mono font-bold text-slate-700">admin</span> / รหัสผ่าน:{" "}
-          <span className="font-mono font-bold text-slate-700">1234</span>
-          <br />
-          (สามารถเพิ่ม/แก้ไขรหัสผ่านได้ที่แท็บ &ldquo;4. จัดการผู้ใช้งาน&rdquo; หลังเข้าสู่ระบบ)
+        <div className="mt-5 rounded-xl bg-slate-50 p-3 text-[11px] text-slate-600 space-y-2">
+          <div className="font-semibold text-slate-700 text-center">
+            คลิกเลือกบัญชีทดสอบตามระดับสิทธิ์ (รหัสผ่าน: <span className="font-mono font-bold">1234</span>)
+          </div>
+          <div className="grid grid-cols-3 gap-1.5">
+            {DEMO_ACCOUNTS.map((acc) => (
+              <button
+                key={acc.username}
+                type="button"
+                onClick={() => {
+                  setUsername(acc.username);
+                  setPassword("1234");
+                }}
+                className={`rounded-lg border px-2 py-1.5 text-center transition ${
+                  username === acc.username
+                    ? "border-teal-600 bg-teal-50 text-teal-900 font-bold"
+                    : "border-slate-200 bg-white text-slate-700 hover:bg-slate-100"
+                }`}
+                title={acc.desc}
+              >
+                <div className="text-[11px] font-bold">{acc.label}</div>
+                <div className="font-mono text-[10px] text-slate-500">{acc.username}</div>
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="mt-4 border-t border-slate-100 pt-4 text-center">

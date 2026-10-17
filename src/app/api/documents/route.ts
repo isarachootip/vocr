@@ -54,11 +54,11 @@ export async function POST(request: Request) {
       );
     }
 
-    // Role check: UPLOADER can only save as PENDING_REVIEW, REVIEWER/ADMIN can verify
+    // Role check: all authenticated users (SYSADMIN, ADMIN, USER) can save & verify documents
     const docInput = { ...parsed.data };
     if (
       docInput.status === "VERIFIED" &&
-      !hasRequiredRole(user, ["REVIEWER", "ADMIN"])
+      !hasRequiredRole(user, ["SYSADMIN", "ADMIN", "USER"])
     ) {
       docInput.status = "PENDING_REVIEW";
     }
@@ -88,7 +88,7 @@ export async function POST(request: Request) {
 export async function DELETE(request: Request) {
   try {
     const user = await getSessionUser();
-    if (!hasRequiredRole(user, ["REVIEWER", "ADMIN"])) {
+    if (!hasRequiredRole(user, ["SYSADMIN", "ADMIN"])) {
       return NextResponse.json(
         { error: "สิทธิ์ผู้ใช้งานไม่เพียงพอในการลบเอกสาร" },
         { status: 403 }
