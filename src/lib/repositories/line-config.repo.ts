@@ -34,6 +34,29 @@ export async function ensureLineDatabaseSchema(): Promise<void> {
       ADD COLUMN IF NOT EXISTS "line_user_id" TEXT,
       ADD COLUMN IF NOT EXISTS "line_display_name" TEXT;
     `);
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "line_inbox_messages" (
+        "id" TEXT NOT NULL,
+        "line_message_id" TEXT NOT NULL,
+        "message_type" TEXT NOT NULL,
+        "file_name" TEXT,
+        "mime_type" TEXT,
+        "file_data_url" TEXT,
+        "line_user_id" TEXT,
+        "line_display_name" TEXT NOT NULL DEFAULT 'LINE User',
+        "ocr_status" TEXT NOT NULL DEFAULT 'PROCESSING',
+        "ocr_error" TEXT,
+        "billing_no" TEXT,
+        "customer_name" TEXT,
+        "net_amount" DOUBLE PRECISION,
+        "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "line_inbox_messages_pkey" PRIMARY KEY ("id")
+      );
+    `);
+    await prisma.$executeRawUnsafe(`
+      CREATE UNIQUE INDEX IF NOT EXISTS "line_inbox_messages_line_message_id_key"
+      ON "line_inbox_messages"("line_message_id");
+    `);
     schemaEnsured = true;
   } catch {
     // Ignore if already exists or handled by migration

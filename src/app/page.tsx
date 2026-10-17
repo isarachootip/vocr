@@ -145,6 +145,19 @@ export default function HomePage() {
             onDocumentReceived={async () => {
               await fetchDocuments();
             }}
+            onOpenInWorkspace={(doc) => {
+              setQueue([doc]);
+              setActiveIdx(0);
+              setActiveTab("WORKSPACE");
+            }}
+            onOpenBillingInWorkspace={(billingNo) => {
+              const matched = savedDocs.find((d) => d.billingNo === billingNo);
+              if (matched) {
+                setQueue([matched]);
+                setActiveIdx(0);
+                setActiveTab("WORKSPACE");
+              }
+            }}
           />
         )}
       </main>

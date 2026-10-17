@@ -33,6 +33,23 @@ export interface LineBotProfileInfo {
   pictureUrl?: string;
 }
 
+export interface LineInboxMessageRecord {
+  id: string;
+  lineMessageId: string;
+  messageType: string;
+  fileName: string | null;
+  mimeType: string | null;
+  fileDataUrl: string | null;
+  lineUserId: string | null;
+  lineDisplayName: string;
+  ocrStatus: "PROCESSING" | "COMPLETED" | "FAILED";
+  ocrError: string | null;
+  billingNo: string | null;
+  customerName: string | null;
+  netAmount: number | null;
+  createdAt: string;
+}
+
 export const LineWebhookEventSourceSchema = z.object({
   type: z.enum(["user", "group", "room"]),
   userId: z.string().optional(),
@@ -44,6 +61,8 @@ export const LineWebhookMessageSchema = z.object({
   id: z.string(),
   type: z.string(),
   text: z.string().optional(),
+  fileName: z.string().optional(),
+  fileSize: z.number().optional(),
   contentProvider: z
     .object({
       type: z.enum(["line", "external"]),

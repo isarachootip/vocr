@@ -140,6 +140,25 @@ model LineOaConfig {
   @@map("line_oa_configs")
 }
 
+model LineInboxMessage {
+  id              String   @id @default(uuid())
+  lineMessageId   String   @unique @map("line_message_id")
+  messageType     String   @map("message_type")
+  fileName        String?  @map("file_name")
+  mimeType        String?  @map("mime_type")
+  fileDataUrl     String?  @map("file_data_url")
+  lineUserId      String?  @map("line_user_id")
+  lineDisplayName String   @default("LINE User") @map("line_display_name")
+  ocrStatus       String   @default("PROCESSING") @map("ocr_status")
+  ocrError        String?  @map("ocr_error")
+  billingNo       String?  @map("billing_no")
+  customerName    String?  @map("customer_name")
+  netAmount       Float?   @map("net_amount")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@map("line_inbox_messages")
+}
+
 model DocumentPage {
   id         String           @id @default(uuid())
   documentId String           @map("document_id")

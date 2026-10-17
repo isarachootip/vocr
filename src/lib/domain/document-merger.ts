@@ -33,10 +33,16 @@ export function mergeMultiPageDocuments(
 
     const base = { ...sorted[0] };
     const allPages = sorted.flatMap((d) => d.pages);
-    const allItems = sorted
-      .flatMap((d) => d.items)
-      .sort((a, b) => a.lineNo - b.lineNo)
-      .map((item, idx) => ({ ...item, lineNo: idx + 1 }));
+    const seenItemKeys = new Set<string>();
+    const rawItems = sorted.flatMap((d) => d.items).sort((a, b) => a.lineNo - b.lineNo);
+    const dedupedItems = rawItems.filter((item) => {
+      const lotKey = item.lots.map((l) => `${l.lotNo}:${l.qty}`).sort().join("|");
+      const key = `${item.materialCode}::${item.itemDescription}::${lotKey}`;
+      if (seenItemKeys.has(key)) return false;
+      seenItemKeys.add(key);
+      return true;
+    });
+    const allItems = dedupedItems.map((item, idx) => ({ ...item, lineNo: idx + 1 }));
 
     // The final page typically holds the summary totals and signatures
     const lastPageWithTotals =

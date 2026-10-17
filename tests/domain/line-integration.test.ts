@@ -6,6 +6,10 @@ import { normalizeRawOcrPayload } from "../../src/lib/services/gpo-prompt";
 import { validateDeliveryDocument } from "../../src/lib/domain/document-validator";
 import { getLineOaConfig, saveLineOaConfig } from "../../src/lib/repositories/line-config.repo";
 import { saveOrMergeLineDocument } from "../../src/lib/repositories/document.repo";
+import {
+  createOrUpdateLineInboxItem,
+  listLineInboxMessages,
+} from "../../src/lib/repositories/line-inbox.repo";
 import { DEFAULT_LINE_CONFIG } from "../../src/lib/schemas/line.schema";
 import { verifyLineBotConnection } from "../../src/lib/services/line-messaging.service";
 
@@ -112,5 +116,25 @@ export async function runLineIntegrationTests(): Promise<void> {
   assert.equal(mergedSaved.items.length, 2);
   assert.equal(mergedSaved.netAmount, 375000);
 
-  console.log("  ✓ LINE OA Signature, Flex Message Builder, Config Repo & Multi-Page Merge passed");
+  // 5. Test LINE Inbox Queue (Image & PDF File Logging)
+  const inboxEntry = await createOrUpdateLineInboxItem({
+    lineMessageId: "line-msg-3001275083",
+    messageType: "image",
+    fileName: "GPO_3001275083.jpg",
+    mimeType: "image/jpeg",
+    fileDataUrl: "/samples/gpo-sample-4.jpg",
+    lineUserId: "U1234567890abcdef",
+    lineDisplayName: "ภก. สมชาย (รพ.ตำรวจ)",
+    ocrStatus: "COMPLETED",
+    billingNo: "3001275083",
+    customerName: "โรงพยาบาลตำรวจ",
+    netAmount: 187500.0,
+  });
+  assert.equal(inboxEntry.ocrStatus, "COMPLETED");
+  assert.equal(inboxEntry.billingNo, "3001275083");
+
+  const inboxList = await listLineInboxMessages(10);
+  assert.equal(inboxList.length >= 1, true);
+
+  console.log("  ✓ LINE OA Signature, Flex Message Builder, Inbox Queue & Multi-Page Merge passed");
 }
