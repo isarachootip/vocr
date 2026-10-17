@@ -11,6 +11,7 @@ import { UserManagementPanel } from "@/components/users/UserManagementPanel";
 import { LineConfigPanel } from "@/components/line/LineConfigPanel";
 import { ContactUsPanel } from "@/components/contact/ContactUsPanel";
 import { useOcrDashboard } from "@/hooks/useOcrDashboard";
+import { removeQueueItemAtIndex } from "@/lib/domain/queue-manager";
 import {
   canAccessTab,
   canDeleteDocuments,
@@ -19,29 +20,11 @@ import {
 
 export default function HomePage() {
   const {
-    activeTab,
-    setActiveTab,
-    isAuthChecking,
-    isAuthenticated,
-    user,
-    apiKey,
-    setApiKey,
-    queue,
-    setQueue,
-    activeIdx,
-    setActiveIdx,
-    isExtracting,
-    isSaving,
-    duplicateBillingNo,
-    banner,
-    savedDocs,
-    masterData,
-    fetchDocuments,
-    handleLogin,
-    handleLogout,
-    handleLoadSamples,
-    handleUploadFiles,
-    handleSaveDocument,
+    activeTab, setActiveTab, isAuthChecking, isAuthenticated, user,
+    apiKey, setApiKey, queue, setQueue, activeIdx, setActiveIdx, existingBillingNos,
+    isExtracting, isSaving, duplicateBillingNo, banner,
+    savedDocs, masterData, fetchDocuments,
+    handleLogin, handleLogout, handleLoadSamples, handleUploadFiles, handleSaveDocument, handleBatchSaveValid,
   } = useOcrDashboard();
 
   if (isAuthChecking) {
@@ -56,18 +39,14 @@ export default function HomePage() {
     return <LoginGate onLogin={handleLogin} />;
   }
 
-  const effectiveTab = canAccessTab(user.role, activeTab)
-    ? activeTab
-    : "WORKSPACE";
+  const effectiveTab = canAccessTab(user.role, activeTab) ? activeTab : "WORKSPACE";
 
   return (
     <div className="min-h-screen bg-slate-50 pb-16">
       <TopNavBar
         activeTab={effectiveTab}
         onSelectTab={(tab) => {
-          if (canAccessTab(user.role, tab)) {
-            setActiveTab(tab);
-          }
+          if (canAccessTab(user.role, tab)) setActiveTab(tab);
         }}
         user={user}
         onLogout={handleLogout}
@@ -101,17 +80,22 @@ export default function HomePage() {
               <ReviewWorkspace
                 queue={queue}
                 activeIdx={activeIdx}
+                existingBillingNos={existingBillingNos}
                 onSelectIdx={setActiveIdx}
                 onUpdateActive={(updated) =>
-                  setQueue((prev) =>
-                    prev.map((item, i) => (i === activeIdx ? updated : item))
-                  )
+                  setQueue((prev) => prev.map((item, i) => (i === activeIdx ? updated : item)))
                 }
                 onRemoveFromQueue={(idx) => {
-                  setQueue((prev) => prev.filter((_, i) => i !== idx));
+                  const removed = removeQueueItemAtIndex(queue, idx, activeIdx);
+                  setQueue(removed.nextQueue);
+                  setActiveIdx(removed.nextActiveIdx);
+                }}
+                onClearQueue={() => {
+                  setQueue([]);
                   setActiveIdx(0);
                 }}
                 onSaveDocument={handleSaveDocument}
+                onBatchSaveValid={handleBatchSaveValid}
                 isSaving={isSaving}
                 duplicateBillingNo={duplicateBillingNo}
               />
@@ -121,7 +105,7 @@ export default function HomePage() {
                   ยังไม่มีเอกสารในคิวตรวจสอบ
                 </p>
                 <p className="mt-1 text-xs text-slate-500">
-                  กดปุ่ม &ldquo;โหลดทั้ง 3 ใบพร้อมกัน (Batch)&rdquo; ด้านบนเพื่อทดสอบสกัดข้อมูลจากรูปใบส่งของจริงทั้ง 3 รูปได้ทันที
+                  กดปุ่ม &ldquo;อัปโหลดรูปใบส่งของ (1 หรือหลายใบพร้อมกัน)&rdquo; หรือเปิดเมนู &ldquo;ข้อมูลตัวอย่างสำหรับทดสอบ&rdquo; ด้านบนเพื่อเริ่มสกัดข้อมูล
                 </p>
               </div>
             )}
@@ -146,21 +130,14 @@ export default function HomePage() {
         )}
 
         {effectiveTab === "MASTER_DATA" && (
-          <MasterDataPanel
-            customers={masterData.customers}
-            products={masterData.products}
-          />
+          <MasterDataPanel customers={masterData.customers} products={masterData.products} />
         )}
 
-        {effectiveTab === "USERS" && (
-          <UserManagementPanel currentUserRole={user.role} />
-        )}
+        {effectiveTab === "USERS" && <UserManagementPanel currentUserRole={user.role} />}
 
         {effectiveTab === "LINE_OA" && (
           <LineConfigPanel
-            onDocumentReceived={async () => {
-              await fetchDocuments();
-            }}
+            onDocumentReceived={async () => { await fetchDocuments(); }}
             onOpenInWorkspace={(doc) => {
               setQueue([doc]);
               setActiveIdx(0);
