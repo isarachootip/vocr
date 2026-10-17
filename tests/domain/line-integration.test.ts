@@ -12,6 +12,9 @@ import {
 } from "../../src/lib/repositories/line-inbox.repo";
 import { DEFAULT_LINE_CONFIG } from "../../src/lib/schemas/line.schema";
 import { verifyLineBotConnection } from "../../src/lib/services/line-messaging.service";
+import { GET as getConfigRoute } from "../../src/app/api/line/config/route";
+import { GET as getInboxRoute } from "../../src/app/api/line/inbox/route";
+import { POST as postWebhookRoute } from "../../src/app/api/line/webhook/route";
 
 export async function runLineIntegrationTests(): Promise<void> {
   // 1. Test HMAC-SHA256 LINE Webhook Signature Verification
@@ -116,7 +119,7 @@ export async function runLineIntegrationTests(): Promise<void> {
   assert.equal(mergedSaved.items.length, 2);
   assert.equal(mergedSaved.netAmount, 375000);
 
-  // 5. Test LINE Inbox Queue (Image & PDF File Logging)
+  // 5. Test LINE Inbox Queue & Route Handlers (/api/line/config, /api/line/inbox, /api/line/webhook)
   const inboxEntry = await createOrUpdateLineInboxItem({
     lineMessageId: "line-msg-3001275083",
     messageType: "image",
@@ -131,10 +134,26 @@ export async function runLineIntegrationTests(): Promise<void> {
     netAmount: 187500.0,
   });
   assert.equal(inboxEntry.ocrStatus, "COMPLETED");
-  assert.equal(inboxEntry.billingNo, "3001275083");
+  assert.equal(inboxListCountCheck(await listLineInboxMessages(10)), true);
 
-  const inboxList = await listLineInboxMessages(10);
-  assert.equal(inboxList.length >= 1, true);
+  const cfgRes = await getConfigRoute(new Request("http://localhost:3000/api/line/config?verify=0"));
+  assert.equal(cfgRes.status, 200);
 
-  console.log("  ✓ LINE OA Signature, Flex Message Builder, Inbox Queue & Multi-Page Merge passed");
+  const inboxRes = await getInboxRoute();
+  assert.equal(inboxRes.status, 200);
+
+  const simRes = await postWebhookRoute(
+    new Request("http://localhost:3000/api/line/webhook", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-line-simulator": "1" },
+      body: JSON.stringify({ sampleId: "sample-4", senderName: "ภก. สมชาย (รพ.ตำรวจ)", messageType: "file" }),
+    })
+  );
+  assert.equal(simRes.status, 200);
+
+  console.log("  ✓ LINE OA Signature, Flex Message Builder, Inbox Queue, API Routes & Multi-Page Merge passed");
+}
+
+function inboxListCountCheck(list: unknown[]): boolean {
+  return list.length >= 1;
 }

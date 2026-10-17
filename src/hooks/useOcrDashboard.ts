@@ -24,13 +24,7 @@ export function useOcrDashboard() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("WORKSPACE");
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState<SessionUser>({
-    id: "admin",
-    username: "admin",
-    email: "admin",
-    name: "admin",
-    role: "ADMIN",
-  });
+  const [user, setUser] = useState<SessionUser>({ id: "admin", username: "admin", email: "admin", name: "admin", role: "ADMIN" });
   const [apiKey, setApiKeyState] = useState(getDefaultGeminiKey);
   const [queue, setQueue] = useState<DeliveryDocumentInput[]>([]);
   const [activeIdx, setActiveIdx] = useState(0);
@@ -39,16 +33,21 @@ export function useOcrDashboard() {
   const [duplicateBillingNo, setDuplicateBillingNo] = useState<string | null>(null);
   const [banner, setBanner] = useState<{ type: "ok" | "err"; text: string } | null>(null);
   const [savedDocs, setSavedDocs] = useState<SavedDocumentRecord[]>([]);
-  const [masterData, setMasterData] = useState<{
-    customers: CustomerMasterRecord[];
-    products: ProductMasterRecord[];
-  }>({ customers: [], products: [] });
+  const [masterData, setMasterData] = useState<{ customers: CustomerMasterRecord[]; products: ProductMasterRecord[] }>({ customers: [], products: [] });
 
   const fetchDocuments = useCallback(async (query = "") => {
     const res = await fetch(`/api/documents${query ? `?${query}` : ""}`);
     if (res.ok) {
       const data = (await res.json()) as { documents: SavedDocumentRecord[] };
       setSavedDocs(data.documents);
+      if (!query) {
+        const pendingLine = data.documents
+          .filter((d) => d.sourceChannel === "LINE" && d.status === "PENDING_REVIEW")
+          .map((d) => ({ ...d, status: "VERIFIED" as const, overwriteExisting: true }));
+        if (pendingLine.length > 0) {
+          setQueue((prev) => (prev.length === 0 ? pendingLine : prev));
+        }
+      }
     }
   }, []);
 
