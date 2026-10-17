@@ -5,6 +5,7 @@ export type AppTab =
   | "EXPLORER"
   | "MASTER_DATA"
   | "USERS"
+  | "LINE_INBOX"
   | "LINE_OA"
   | "CONTACT";
 
@@ -14,11 +15,19 @@ const ROLE_TAB_MAP: Record<UserRoleType, AppTab[]> = {
     "EXPLORER",
     "MASTER_DATA",
     "USERS",
+    "LINE_INBOX",
     "LINE_OA",
     "CONTACT",
   ],
-  ADMIN: ["WORKSPACE", "EXPLORER", "MASTER_DATA", "USERS", "CONTACT"],
-  USER: ["WORKSPACE", "EXPLORER", "CONTACT"],
+  ADMIN: [
+    "WORKSPACE",
+    "EXPLORER",
+    "MASTER_DATA",
+    "USERS",
+    "LINE_INBOX",
+    "CONTACT",
+  ],
+  USER: ["WORKSPACE", "EXPLORER", "LINE_INBOX", "CONTACT"],
 };
 
 export function normalizeUserRole(rawRole?: string | null): UserRoleType {

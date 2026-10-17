@@ -161,6 +161,41 @@ model LineInboxMessage {
   @@map("line_inbox_messages")
 }
 
+model LineChatConversation {
+  id             String            @id @default(uuid())
+  lineUserId     String            @unique @map("line_user_id")
+  displayName    String            @map("display_name")
+  pictureUrl     String?           @map("picture_url")
+  status         String            @default("OPEN")
+  botPaused      Boolean           @default(false) @map("bot_paused")
+  unreadCount    Int               @default(0) @map("unread_count")
+  assignedToName String?           @map("assigned_to_name")
+  customerCode   String?           @map("customer_code")
+  customerTag    String?           @map("customer_tag")
+  lastMessageAt  DateTime          @default(now()) @map("last_message_at")
+  createdAt      DateTime          @default(now()) @map("created_at")
+  updatedAt      DateTime          @updatedAt @map("updated_at")
+  messages       LineChatMessage[]
+
+  @@map("line_chat_conversations")
+}
+
+model LineChatMessage {
+  id             String               @id @default(uuid())
+  conversationId String               @map("conversation_id")
+  conversation   LineChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  direction      String               @default("INBOUND")
+  senderRole     String               @default("CUSTOMER") @map("sender_role")
+  senderName     String               @map("sender_name")
+  messageType    String               @default("text") @map("message_type")
+  content        String
+  billingNo      String?              @map("billing_no")
+  fileUrl        String?              @map("file_url")
+  createdAt      DateTime             @default(now()) @map("created_at")
+
+  @@map("line_chat_messages")
+}
+
 model DocumentPage {
   id         String           @id @default(uuid())
   documentId String           @map("document_id")

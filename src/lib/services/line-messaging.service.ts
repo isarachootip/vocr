@@ -141,3 +141,43 @@ export async function replyLineMessages(
     return false;
   }
 }
+
+/**
+ * Sends a proactive 2-way Push Message from Admin Inbox to a LINE user (/v2/bot/message/push)
+ */
+export async function pushLineMessages(
+  toUserId: string,
+  messages: Array<Record<string, unknown>>,
+  channelAccessToken: string
+): Promise<{ sent: boolean; simulated?: boolean; error?: string }> {
+  const cleanUserId = toUserId.trim();
+  if (!cleanUserId || cleanUserId.startsWith("U_SIM") || cleanUserId.startsWith("U_SAMRAN") || cleanUserId.startsWith("U_SOMCHAI")) {
+    return { sent: true, simulated: true };
+  }
+
+  try {
+    const res = await fetch(`${LINE_API_BASE}/message/push`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${channelAccessToken.trim()}`,
+      },
+      body: JSON.stringify({
+        to: cleanUserId,
+        messages,
+      }),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      return { sent: false, error: `LINE Push HTTP ${res.status}: ${errText.slice(0, 120)}` };
+    }
+    return { sent: true };
+  } catch (err: unknown) {
+    return {
+      sent: false,
+      error: err instanceof Error ? err.message : "ส่งข้อความ Push ไปยัง LINE ไม่สำเร็จ",
+    };
+  }
+}
+

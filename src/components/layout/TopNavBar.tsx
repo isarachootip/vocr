@@ -10,6 +10,7 @@ import {
   UserCheck,
   LogOut,
   MessageCircle,
+  MessageSquare,
   Building2,
 } from "lucide-react";
 import type { SessionUser, UserRoleType } from "@/lib/schemas/auth.schema";
@@ -30,6 +31,7 @@ interface TopNavBarProps {
   onApiKeyChange: (key: string) => void;
   queueCount: number;
   savedCount: number;
+  lineUnreadCount?: number;
 }
 
 const ROLE_BADGE_STYLE: Record<UserRoleType, string> = {
@@ -47,6 +49,7 @@ export function TopNavBar({
   onApiKeyChange,
   queueCount,
   savedCount,
+  lineUnreadCount = 0,
 }: TopNavBarProps) {
   const [showKeyInput, setShowKeyInput] = useState(false);
   const allowedTabs = getAllowedTabsForRole(user.role);
@@ -75,16 +78,25 @@ export function TopNavBar({
       badge: savedCount,
       badgeClass: "bg-slate-200 text-slate-700",
     },
-    { tab: "MASTER_DATA", label: "3. ฐานข้อมูลลูกค้า & ยา", icon: <Database className="h-4 w-4" /> },
-    { tab: "USERS", label: "4. จัดการผู้ใช้งาน", icon: <Users className="h-4 w-4" /> },
+    {
+      tab: "LINE_INBOX",
+      label: "3. แชท LINE Inbox",
+      icon: <MessageSquare className="h-4 w-4" />,
+      badge: lineUnreadCount > 0 ? lineUnreadCount : undefined,
+      badgeClass: "bg-rose-500 text-white",
+      activeClass: "bg-blue-600 text-white shadow-sm",
+      inactiveClass: "text-blue-700 hover:bg-blue-50",
+    },
+    { tab: "MASTER_DATA", label: "4. ฐานข้อมูลลูกค้า & ยา", icon: <Database className="h-4 w-4" /> },
+    { tab: "USERS", label: "5. จัดการผู้ใช้งาน", icon: <Users className="h-4 w-4" /> },
     {
       tab: "LINE_OA",
-      label: "5. ตั้งค่า LINE OA",
+      label: "6. ตั้งค่า LINE OA",
       icon: <MessageCircle className="h-4 w-4" />,
       activeClass: "bg-emerald-600 text-white shadow-sm",
       inactiveClass: "text-emerald-700 hover:bg-emerald-50",
     },
-    { tab: "CONTACT", label: "6. ติดต่อเรา", icon: <Building2 className="h-4 w-4" /> },
+    { tab: "CONTACT", label: "7. ติดต่อเรา", icon: <Building2 className="h-4 w-4" /> },
   ];
 
   const visibleNavItems = navItems.filter((item) => allowedTabs.includes(item.tab));

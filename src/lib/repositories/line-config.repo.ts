@@ -57,6 +57,46 @@ export async function ensureLineDatabaseSchema(): Promise<void> {
       CREATE UNIQUE INDEX IF NOT EXISTS "line_inbox_messages_line_message_id_key"
       ON "line_inbox_messages"("line_message_id");
     `);
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "line_chat_conversations" (
+        "id" TEXT NOT NULL,
+        "line_user_id" TEXT NOT NULL,
+        "display_name" TEXT NOT NULL,
+        "picture_url" TEXT,
+        "status" TEXT NOT NULL DEFAULT 'OPEN',
+        "bot_paused" BOOLEAN NOT NULL DEFAULT false,
+        "unread_count" INTEGER NOT NULL DEFAULT 0,
+        "assigned_to_name" TEXT,
+        "customer_code" TEXT,
+        "customer_tag" TEXT,
+        "last_message_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "line_chat_conversations_pkey" PRIMARY KEY ("id")
+      );
+    `);
+    await prisma.$executeRawUnsafe(`
+      CREATE UNIQUE INDEX IF NOT EXISTS "line_chat_conversations_line_user_id_key"
+      ON "line_chat_conversations"("line_user_id");
+    `);
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "line_chat_messages" (
+        "id" TEXT NOT NULL,
+        "conversation_id" TEXT NOT NULL,
+        "direction" TEXT NOT NULL DEFAULT 'INBOUND',
+        "sender_role" TEXT NOT NULL DEFAULT 'CUSTOMER',
+        "sender_name" TEXT NOT NULL,
+        "message_type" TEXT NOT NULL DEFAULT 'text',
+        "content" TEXT NOT NULL,
+        "billing_no" TEXT,
+        "file_url" TEXT,
+        "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "line_chat_messages_pkey" PRIMARY KEY ("id"),
+        CONSTRAINT "line_chat_messages_conversation_id_fkey"
+          FOREIGN KEY ("conversation_id") REFERENCES "line_chat_conversations"("id")
+          ON DELETE CASCADE ON UPDATE CASCADE
+      );
+    `);
     schemaEnsured = true;
   } catch {
     // Ignore if already exists or handled by migration

@@ -18,11 +18,12 @@ export function runRbacPermissionsTests(): void {
   assert.equal(normalizeUserRole("REVIEWER"), "USER");
   assert.equal(normalizeUserRole("UPLOADER"), "USER");
 
-  // 2. USER role visibility: sees only WORKSPACE, EXPLORER, CONTACT
+  // 2. USER role visibility: sees WORKSPACE, EXPLORER, LINE_INBOX, CONTACT
   const userTabs = getAllowedTabsForRole("USER");
-  assert.deepEqual(userTabs, ["WORKSPACE", "EXPLORER", "CONTACT"]);
+  assert.deepEqual(userTabs, ["WORKSPACE", "EXPLORER", "LINE_INBOX", "CONTACT"]);
   assert.equal(canAccessTab("USER", "WORKSPACE"), true);
   assert.equal(canAccessTab("USER", "EXPLORER"), true);
+  assert.equal(canAccessTab("USER", "LINE_INBOX"), true);
   assert.equal(canAccessTab("USER", "CONTACT"), true);
   assert.equal(canAccessTab("USER", "MASTER_DATA"), false);
   assert.equal(canAccessTab("USER", "USERS"), false);
@@ -32,15 +33,17 @@ export function runRbacPermissionsTests(): void {
   assert.equal(canDeleteDocuments("USER"), false);
   assert.deepEqual(getAssignableRoles("USER"), []);
 
-  // 3. ADMIN role visibility: sees WORKSPACE, EXPLORER, MASTER_DATA, USERS, CONTACT (no LINE_OA or Gemini Key)
+  // 3. ADMIN role visibility: sees WORKSPACE, EXPLORER, MASTER_DATA, USERS, LINE_INBOX, CONTACT (no LINE_OA or Gemini Key)
   const adminTabs = getAllowedTabsForRole("ADMIN");
   assert.deepEqual(adminTabs, [
     "WORKSPACE",
     "EXPLORER",
     "MASTER_DATA",
     "USERS",
+    "LINE_INBOX",
     "CONTACT",
   ]);
+  assert.equal(canAccessTab("ADMIN", "LINE_INBOX"), true);
   assert.equal(canAccessTab("ADMIN", "LINE_OA"), false);
   assert.equal(canManageSystemConfig("ADMIN"), false);
   assert.equal(canEditContactProfile("ADMIN"), true);
@@ -50,16 +53,18 @@ export function runRbacPermissionsTests(): void {
   assert.equal(canModifyTargetUser("ADMIN", "ADMIN"), true);
   assert.equal(canModifyTargetUser("ADMIN", "SYSADMIN"), false);
 
-  // 4. SYSADMIN role visibility: full access to all 6 tabs and system config
+  // 4. SYSADMIN role visibility: full access to all 7 tabs and system config
   const sysAdminTabs = getAllowedTabsForRole("SYSADMIN");
   assert.deepEqual(sysAdminTabs, [
     "WORKSPACE",
     "EXPLORER",
     "MASTER_DATA",
     "USERS",
+    "LINE_INBOX",
     "LINE_OA",
     "CONTACT",
   ]);
+  assert.equal(canAccessTab("SYSADMIN", "LINE_INBOX"), true);
   assert.equal(canAccessTab("SYSADMIN", "LINE_OA"), true);
   assert.equal(canManageSystemConfig("SYSADMIN"), true);
   assert.equal(canEditContactProfile("SYSADMIN"), true);

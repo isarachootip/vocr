@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { TopNavBar } from "@/components/layout/TopNavBar";
 import { LoginGate } from "@/components/auth/LoginGate";
 import { BatchDropzone } from "@/components/upload/BatchDropzone";
@@ -9,6 +9,7 @@ import { DocumentExplorerView } from "@/components/explorer/DocumentExplorerView
 import { MasterDataPanel } from "@/components/explorer/MasterDataPanel";
 import { UserManagementPanel } from "@/components/users/UserManagementPanel";
 import { LineConfigPanel } from "@/components/line/LineConfigPanel";
+import { LineOmnichannelInbox } from "@/components/line-chat/LineOmnichannelInbox";
 import { ContactUsPanel } from "@/components/contact/ContactUsPanel";
 import { useOcrDashboard } from "@/hooks/useOcrDashboard";
 import { removeQueueItemAtIndex } from "@/lib/domain/queue-manager";
@@ -26,6 +27,19 @@ export default function HomePage() {
     savedDocs, masterData, fetchDocuments,
     handleLogin, handleLogout, handleLoadSamples, handleUploadFiles, handleSaveDocument, handleBatchSaveValid,
   } = useOcrDashboard();
+  const [lineUnreadCount, setLineUnreadCount] = useState(4);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    void fetch("/api/line/chat")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: { totalUnread?: number } | null) => {
+        if (data && typeof data.totalUnread === "number") {
+          setLineUnreadCount(data.totalUnread);
+        }
+      })
+      .catch(() => null);
+  }, [isAuthenticated]);
 
   if (isAuthChecking) {
     return (
@@ -40,6 +54,14 @@ export default function HomePage() {
   }
 
   const effectiveTab = canAccessTab(user.role, activeTab) ? activeTab : "WORKSPACE";
+  const openBillingInWorkspace = (billingNo: string) => {
+    const matched = savedDocs.find((d) => d.billingNo === billingNo);
+    if (matched) {
+      setQueue([matched]);
+      setActiveIdx(0);
+      setActiveTab("WORKSPACE");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 pb-16">
@@ -54,6 +76,7 @@ export default function HomePage() {
         onApiKeyChange={setApiKey}
         queueCount={queue.length}
         savedCount={savedDocs.length}
+        lineUnreadCount={lineUnreadCount}
       />
 
       <main className="mx-auto max-w-[1600px] space-y-4 px-4 pt-4">
@@ -129,6 +152,21 @@ export default function HomePage() {
           />
         )}
 
+        {effectiveTab === "LINE_INBOX" && (
+          <LineOmnichannelInbox
+            currentUserName={user.username || user.email}
+            documents={savedDocs}
+            onOpenDocumentInWorkspace={(doc) => {
+              setQueue([doc]);
+              setActiveIdx(0);
+              setActiveTab("WORKSPACE");
+            }}
+            onOpenBillingInWorkspace={openBillingInWorkspace}
+            onRefreshDocuments={fetchDocuments}
+            onUnreadCountChange={setLineUnreadCount}
+          />
+        )}
+
         {effectiveTab === "MASTER_DATA" && (
           <MasterDataPanel customers={masterData.customers} products={masterData.products} />
         )}
@@ -143,14 +181,7 @@ export default function HomePage() {
               setActiveIdx(0);
               setActiveTab("WORKSPACE");
             }}
-            onOpenBillingInWorkspace={(billingNo) => {
-              const matched = savedDocs.find((d) => d.billingNo === billingNo);
-              if (matched) {
-                setQueue([matched]);
-                setActiveIdx(0);
-                setActiveTab("WORKSPACE");
-              }
-            }}
+            onOpenBillingInWorkspace={openBillingInWorkspace}
           />
         )}
 

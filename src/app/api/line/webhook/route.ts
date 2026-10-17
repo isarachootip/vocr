@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { getLineOaConfig } from "@/lib/repositories/line-config.repo";
 import { saveOrMergeLineDocument } from "@/lib/repositories/document.repo";
 import { createOrUpdateLineInboxItem } from "@/lib/repositories/line-inbox.repo";
+import {
+  appendLineChatMessage,
+  findOrCreateLineConversation,
+} from "@/lib/repositories/line-chat-mutation.repo";
 import { verifyLineSignature } from "@/lib/domain/line-signature";
 import { validateDeliveryDocument } from "@/lib/domain/document-validator";
 import { LineWebhookBodySchema } from "@/lib/schemas/line.schema";
@@ -33,30 +37,65 @@ export async function POST(request: Request) {
       const simBody = (await request.json()) as {
         sampleId?: string;
         senderName?: string;
+        lineUserId?: string;
         messageType?: "image" | "file" | "text";
         chatText?: string;
       };
-      const senderName = simBody.senderName || "ภก. สมชาย (รพ.ตำรวจ)";
+      const senderName = simBody.senderName || "ภก. สมชาย ใจดี (รพ.ตำรวจ)";
+      const lineUserId =
+        simBody.lineUserId ||
+        (senderName.toLowerCase().includes("samran")
+          ? "U_SAMRAN_LINE_LIVE"
+          : "U_SOMCHAI_POLICE_HOSP");
       const msgType = simBody.messageType || "image";
       const simMsgId = `sim-${msgType}-${Date.now()}`;
 
+      const conv = await findOrCreateLineConversation({
+        lineUserId,
+        displayName: senderName,
+      });
+
       if (msgType === "text") {
         const userText = simBody.chatText?.trim() || "สวัสดีครับ วันนี้ทำอะไรได้บ้าง";
+        await appendLineChatMessage({
+          conversationId: conv.id,
+          direction: "INBOUND",
+          senderRole: "CUSTOMER",
+          senderName,
+          messageType: "text",
+          content: userText,
+        });
+
         const aiReply = await generateLineAiReply(userText, senderName);
+        if (!conv.botPaused) {
+          await appendLineChatMessage({
+            conversationId: conv.id,
+            direction: "OUTBOUND",
+            senderRole: "BOT",
+            senderName: "ITE-SERVICE AI Bot",
+            messageType: "text",
+            content: aiReply.replyText,
+            billingNo: aiReply.matchedBillingNo,
+          });
+        }
+
         const inboxItem = await createOrUpdateLineInboxItem({
           lineMessageId: simMsgId,
           messageType: "text",
           fileName: userText,
-          lineUserId: "U_SIMULATED_LINE_USER",
+          lineUserId,
           lineDisplayName: senderName,
           ocrStatus: "COMPLETED",
           billingNo: aiReply.matchedBillingNo,
-          customerName: `AI ตอบกลับแชท (${userText.slice(0, 35)})`,
+          customerName: conv.botPaused
+            ? `รอแอดมินตอบกลับ (Bot Paused)`
+            : `AI ตอบกลับแชท (${userText.slice(0, 35)})`,
         });
 
         return NextResponse.json({
           ok: true,
           simulated: true,
+          botPaused: conv.botPaused,
           inboxItem,
           aiReply,
         });
@@ -68,8 +107,19 @@ export async function POST(request: Request) {
         imageUrl: `/samples/gpo-${sampleId}.jpg`,
       });
       const saved = await saveOrMergeLineDocument(extracted.document, {
-        lineUserId: "U_SIMULATED_LINE_USER",
+        lineUserId,
         lineDisplayName: senderName,
+      });
+
+      await appendLineChatMessage({
+        conversationId: conv.id,
+        direction: "INBOUND",
+        senderRole: "CUSTOMER",
+        senderName,
+        messageType: msgType,
+        content: `ส่งไฟล์ใบส่งของ GPO_${saved.billingNo}.${msgType === "file" ? "pdf" : "jpg"} (${saved.customerName})`,
+        billingNo: saved.billingNo,
+        fileUrl: `/samples/gpo-${sampleId}.jpg`,
       });
 
       const inboxItem = await createOrUpdateLineInboxItem({
@@ -78,7 +128,7 @@ export async function POST(request: Request) {
         fileName: msgType === "file" ? `GPO_${saved.billingNo}.pdf` : `GPO_${saved.billingNo}.jpg`,
         mimeType: msgType === "file" ? "application/pdf" : "image/jpeg",
         fileDataUrl: `/samples/gpo-${sampleId}.jpg`,
-        lineUserId: "U_SIMULATED_LINE_USER",
+        lineUserId,
         lineDisplayName: senderName,
         ocrStatus: "COMPLETED",
         billingNo: saved.billingNo,

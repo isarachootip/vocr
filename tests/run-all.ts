@@ -8,6 +8,7 @@ import { runLineIntegrationTests } from "./domain/line-integration.test";
 import { runContactProfileTests } from "./domain/contact-profile.test";
 import { runRbacPermissionsTests } from "./domain/rbac-permissions.test";
 import { runQueueManagerTests } from "./domain/queue-manager.test";
+import { runLineChatInboxTests } from "./domain/line-chat-inbox.test";
 
 async function main(): Promise<void> {
   console.log("Running GPO OCR Domain & Database Test Suite...");
@@ -20,6 +21,7 @@ async function main(): Promise<void> {
   await runDatabaseIntegrationTests();
   await runUserCrudTests();
   await runLineIntegrationTests();
+  await runLineChatInboxTests();
   await runContactProfileTests();
   console.log("All unit & database integration tests passed 100%!");
   process.exit(0);
