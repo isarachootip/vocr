@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import { ScanLine, Lock, User, LogIn, Loader2 } from "lucide-react";
+import { ScanLine, Lock, User, LogIn, Loader2, Building2, ArrowLeft } from "lucide-react";
+import { ContactUsPanel } from "@/components/contact/ContactUsPanel";
 
 interface LoginGateProps {
   onLogin: (username: string, password: string) => Promise<string | null>;
@@ -12,6 +13,7 @@ export function LoginGate({ onLogin }: LoginGateProps) {
   const [password, setPassword] = useState("1234");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [showContact, setShowContact] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,6 +28,26 @@ export function LoginGate({ onLogin }: LoginGateProps) {
       setIsLoading(false);
     }
   };
+
+  if (showContact) {
+    return (
+      <div className="min-h-screen bg-slate-100 px-4 py-8">
+        <div className="mx-auto max-w-[1400px] space-y-4">
+          <div className="flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => setShowContact(false)}
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
+            >
+              <ArrowLeft className="h-4 w-4 text-teal-700" />
+              <span>กลับไปหน้าเข้าสู่ระบบ</span>
+            </button>
+          </div>
+          <ContactUsPanel canEdit={false} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-100 px-4">
@@ -102,6 +124,17 @@ export function LoginGate({ onLogin }: LoginGateProps) {
           <span className="font-mono font-bold text-slate-700">1234</span>
           <br />
           (สามารถเพิ่ม/แก้ไขรหัสผ่านได้ที่แท็บ &ldquo;4. จัดการผู้ใช้งาน&rdquo; หลังเข้าสู่ระบบ)
+        </div>
+
+        <div className="mt-4 border-t border-slate-100 pt-4 text-center">
+          <button
+            type="button"
+            onClick={() => setShowContact(true)}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-teal-200 bg-teal-50/70 px-4 py-2 text-xs font-semibold text-teal-800 transition hover:bg-teal-100"
+          >
+            <Building2 className="h-4 w-4 text-teal-700" />
+            <span>ติดต่อเรา (ITE Compute) • Website / LINE / FB / IG / TikTok</span>
+          </button>
         </div>
       </div>
     </div>

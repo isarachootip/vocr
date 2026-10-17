@@ -5,6 +5,7 @@ import { runOcrNormalizerTests } from "./domain/ocr-normalizer.test";
 import { runDatabaseIntegrationTests } from "./integration/db-seed.test";
 import { runUserCrudTests } from "./integration/user-crud.test";
 import { runLineIntegrationTests } from "./domain/line-integration.test";
+import { runContactProfileTests } from "./domain/contact-profile.test";
 
 async function main(): Promise<void> {
   console.log("Running GPO OCR Domain & Database Test Suite...");
@@ -15,6 +16,7 @@ async function main(): Promise<void> {
   await runDatabaseIntegrationTests();
   await runUserCrudTests();
   await runLineIntegrationTests();
+  await runContactProfileTests();
   console.log("All unit & database integration tests passed 100%!");
   process.exit(0);
 }

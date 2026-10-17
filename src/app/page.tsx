@@ -9,6 +9,7 @@ import { DocumentExplorerView } from "@/components/explorer/DocumentExplorerView
 import { MasterDataPanel } from "@/components/explorer/MasterDataPanel";
 import { UserManagementPanel } from "@/components/users/UserManagementPanel";
 import { LineConfigPanel } from "@/components/line/LineConfigPanel";
+import { ContactUsPanel } from "@/components/contact/ContactUsPanel";
 import { useOcrDashboard } from "@/hooks/useOcrDashboard";
 
 export default function HomePage() {
@@ -160,6 +161,8 @@ export default function HomePage() {
             }}
           />
         )}
+
+        {activeTab === "CONTACT" && <ContactUsPanel canEdit={true} />}
       </main>
     </div>
   );

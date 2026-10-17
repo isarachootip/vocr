@@ -10,10 +10,17 @@ import {
   UserCheck,
   LogOut,
   MessageCircle,
+  Building2,
 } from "lucide-react";
 import type { SessionUser } from "@/lib/schemas/auth.schema";
 
-export type ActiveTab = "WORKSPACE" | "EXPLORER" | "MASTER_DATA" | "USERS" | "LINE_OA";
+export type ActiveTab =
+  | "WORKSPACE"
+  | "EXPLORER"
+  | "MASTER_DATA"
+  | "USERS"
+  | "LINE_OA"
+  | "CONTACT";
 
 interface TopNavBarProps {
   activeTab: ActiveTab;
@@ -38,6 +45,53 @@ export function TopNavBar({
 }: TopNavBarProps) {
   const [showKeyInput, setShowKeyInput] = useState(false);
 
+  const navItems: Array<{
+    tab: ActiveTab;
+    label: string;
+    icon: React.ReactNode;
+    badge?: number;
+    badgeClass?: string;
+    activeClass?: string;
+    inactiveClass?: string;
+  }> = [
+    {
+      tab: "WORKSPACE",
+      label: "1. สกัด & ตรวจสอบเอกสาร",
+      icon: <ScanLine className="h-4 w-4" />,
+      badge: queueCount > 0 ? queueCount : undefined,
+      badgeClass: "bg-teal-100 text-teal-800",
+    },
+    {
+      tab: "EXPLORER",
+      label: "2. คลังใบส่งของ & Export",
+      icon: <FileSpreadsheet className="h-4 w-4" />,
+      badge: savedCount,
+      badgeClass: "bg-slate-200 text-slate-700",
+    },
+    {
+      tab: "MASTER_DATA",
+      label: "3. ฐานข้อมูลลูกค้า & ยา",
+      icon: <Database className="h-4 w-4" />,
+    },
+    {
+      tab: "USERS",
+      label: "4. จัดการผู้ใช้งาน",
+      icon: <Users className="h-4 w-4" />,
+    },
+    {
+      tab: "LINE_OA",
+      label: "5. ตั้งค่า LINE OA",
+      icon: <MessageCircle className="h-4 w-4" />,
+      activeClass: "bg-emerald-600 text-white shadow-sm",
+      inactiveClass: "text-emerald-700 hover:bg-emerald-50",
+    },
+    {
+      tab: "CONTACT",
+      label: "6. ติดต่อเรา",
+      icon: <Building2 className="h-4 w-4" />,
+    },
+  ];
+
   return (
     <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
       <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-3 px-4 py-3">
@@ -56,78 +110,30 @@ export function TopNavBar({
         </div>
 
         <nav className="flex flex-wrap items-center gap-1 rounded-xl bg-slate-100 p-1">
-          <button
-            type="button"
-            onClick={() => onSelectTab("WORKSPACE")}
-            className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-              activeTab === "WORKSPACE"
-                ? "bg-white text-teal-800 shadow-sm"
-                : "text-slate-600 hover:text-slate-900"
-            }`}
-          >
-            <ScanLine className="h-4 w-4" />
-            <span>1. สกัด & ตรวจสอบเอกสาร</span>
-            {queueCount > 0 && (
-              <span className="rounded-full bg-teal-100 px-2 py-0.5 text-[11px] font-bold text-teal-800">
-                {queueCount}
-              </span>
-            )}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onSelectTab("EXPLORER")}
-            className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-              activeTab === "EXPLORER"
-                ? "bg-white text-teal-800 shadow-sm"
-                : "text-slate-600 hover:text-slate-900"
-            }`}
-          >
-            <FileSpreadsheet className="h-4 w-4" />
-            <span>2. คลังใบส่งของ & Export</span>
-            <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[11px] font-bold text-slate-700">
-              {savedCount}
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onSelectTab("MASTER_DATA")}
-            className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-              activeTab === "MASTER_DATA"
-                ? "bg-white text-teal-800 shadow-sm"
-                : "text-slate-600 hover:text-slate-900"
-            }`}
-          >
-            <Database className="h-4 w-4" />
-            <span>3. ฐานข้อมูลลูกค้า & ยา</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onSelectTab("USERS")}
-            className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-              activeTab === "USERS"
-                ? "bg-white text-teal-800 shadow-sm"
-                : "text-slate-600 hover:text-slate-900"
-            }`}
-          >
-            <Users className="h-4 w-4" />
-            <span>4. จัดการผู้ใช้งาน</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onSelectTab("LINE_OA")}
-            className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-              activeTab === "LINE_OA"
-                ? "bg-emerald-600 text-white shadow-sm"
-                : "text-emerald-700 hover:bg-emerald-50"
-            }`}
-          >
-            <MessageCircle className="h-4 w-4" />
-            <span>5. ตั้งค่า LINE OA</span>
-          </button>
+          {navItems.map((item) => {
+            const isActive = activeTab === item.tab;
+            const styleClass = isActive
+              ? item.activeClass || "bg-white text-teal-800 shadow-sm"
+              : item.inactiveClass || "text-slate-600 hover:text-slate-900";
+            return (
+              <button
+                key={item.tab}
+                type="button"
+                onClick={() => onSelectTab(item.tab)}
+                className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${styleClass}`}
+              >
+                {item.icon}
+                <span>{item.label}</span>
+                {item.badge !== undefined && (
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${item.badgeClass}`}
+                  >
+                    {item.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </nav>
 
         <div className="flex items-center gap-2">

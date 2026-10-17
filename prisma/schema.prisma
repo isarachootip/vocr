@@ -210,3 +210,27 @@ model DocumentItemLot {
 
   @@map("document_item_lots")
 }
+
+model ContactProfile {
+  id             String   @id @default("default")
+  companyName    String   @map("company_name")
+  tagline        String
+  phone          String
+  email          String
+  address        String
+  businessHours  String   @map("business_hours")
+  websiteUrl     String   @map("website_url")
+  websiteLabel   String   @map("website_label")
+  lineUrl        String   @map("line_url")
+  lineLabel      String   @map("line_label")
+  facebookUrl    String   @map("facebook_url")
+  facebookLabel  String   @map("facebook_label")
+  instagramUrl   String   @map("instagram_url")
+  instagramLabel String   @map("instagram_label")
+  tiktokUrl      String   @map("tiktok_url")
+  tiktokLabel    String   @map("tiktok_label")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@map("contact_profiles")
+}
+
