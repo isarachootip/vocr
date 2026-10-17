@@ -170,11 +170,11 @@ export async function generateLineAiReply(
     };
   }
 
-  // 3. Default Personalized Greeting & AI Assistant Menu for Returning Users
+  // 3. Unified Personalized Greeting & AI Assistant Menu (for both New & Returning Users)
   return {
     replyText: [
       `สวัสดีครับคุณ ${displayName} 👋`,
-      "ยินดีต้อนรับกลับสู่ระบบผู้ช่วย AI ใบส่งขององค์การเภสัชกรรม (GPO OCR) วันนี้ต้องการทำรายการใดหรือให้ AI ช่วยเรื่องใดดีครับ?",
+      "ยินดีต้อนรับสู่ระบบผู้ช่วย AI ใบส่งขององค์การเภสัชกรรม (GPO OCR) วันนี้ต้องการทำรายการใดหรือให้ AI ช่วยเรื่องใดดีครับ?",
       "",
       `📊 ข้อมูลในระบบปัจจุบัน: เอกสารทั้งหมด ${docs.length} ใบ (ยืนยันแล้ว ${verifiedCount} ใบ • รอตรวจสอบ ${pendingCount} ใบ)`,
       "",

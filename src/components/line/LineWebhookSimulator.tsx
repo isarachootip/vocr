@@ -56,7 +56,7 @@ export function LineWebhookSimulator({ onSimulatedSuccess, onOpenInWorkspace }: 
           <span>จำลองการแชททักทาย AI และส่งไฟล์ใบส่งของผ่าน LINE OA (Simulator)</span>
         </h3>
         <p className="mt-0.5 text-xs text-slate-500">
-          ทดสอบทั้งกรณีผู้ใช้คนเดิมทักแชทถาม AI (ทักทาย/เช็คสถานะ/ถามข้อมูลยา-Lot) และการส่งไฟล์รูปภาพหรือ PDF เข้าสกัด OCR
+          ทดสอบการทักแชท AI (ทั้งผู้ใช้ใหม่และผู้ใช้เดิมได้รับข้อความต้อนรับและเมนูเหมือนกัน) และการส่งไฟล์รูปภาพหรือ PDF เข้าสกัด OCR
         </p>
       </div>
 
@@ -88,7 +88,7 @@ export function LineWebhookSimulator({ onSimulatedSuccess, onOpenInWorkspace }: 
                 placeholder="พิมพ์ข้อความทักทาย หรือถามข้อมูลใบส่งของ..."
               />
               <div className="flex flex-wrap gap-1.5 pt-1">
-                <button type="button" onClick={() => void handleSimulate("สวัสดีครับ วันนี้ทำอะไรได้บ้าง")} className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-800 hover:bg-emerald-100">👋 ทักทาย (คนเดิม)</button>
+                <button type="button" onClick={() => void handleSimulate("สวัสดีครับ วันนี้ทำอะไรได้บ้าง")} className="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-800 hover:bg-emerald-100">👋 ทักทาย AI (ผู้ใช้ใหม่/เดิม)</button>
                 <button type="button" onClick={() => void handleSimulate("เช็คสถานะเอกสารล่าสุด")} className="rounded-lg border border-teal-200 bg-teal-50 px-2.5 py-1 text-[11px] font-semibold text-teal-800 hover:bg-teal-100">🔍 เช็คสถานะเอกสารล่าสุด</button>
                 <button type="button" onClick={() => void handleSimulate("ใบส่งของ โรงพยาบาลตำรวจ ยอดเท่าไหร่และมี Lot อะไรบ้าง")} className="rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-[11px] font-semibold text-indigo-800 hover:bg-indigo-100">💊 ถาม AI ข้อมูลยา รพ.ตำรวจ</button>
               </div>
@@ -172,7 +172,7 @@ export function LineWebhookSimulator({ onSimulatedSuccess, onOpenInWorkspace }: 
             </div>
           ) : (
             <div className="flex h-full min-h-[180px] items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-xs text-slate-500">
-              กดปุ่ม &ldquo;👋 ทักทาย (คนเดิม)&rdquo; หรือ &ldquo;ส่งข้อความทักแชท AI&rdquo; ด้านซ้ายเพื่อดูตัวอย่างการโต้ตอบของ AI พร้อมปุ่มลัด Quick Reply
+              กดปุ่ม &ldquo;👋 ทักทาย AI (ผู้ใช้ใหม่/เดิม)&rdquo; หรือ &ldquo;ส่งข้อความทักแชท AI&rdquo; ด้านซ้ายเพื่อดูตัวอย่างการโต้ตอบของ AI พร้อมปุ่มลัด Quick Reply
             </div>
           )}
         </div>

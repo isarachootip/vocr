@@ -29,19 +29,25 @@ export async function processLineWebhookEvents(
       : null;
     const displayName = profile?.displayName ?? "ผู้ใช้งาน LINE";
 
-    if (event.type === "follow" && event.replyToken) {
+    if (event.type === "follow") {
       const welcome = await generateLineAiReply("สวัสดี", displayName);
-      await replyLineMessages(
-        event.replyToken,
-        [
-          {
-            type: "text",
-            text: welcome.replyText,
-            quickReply,
-          },
-        ],
-        config.channelAccessToken
-      );
+      await createOrUpdateLineInboxItem({
+        lineMessageId: `follow-${userId ?? Date.now()}`,
+        messageType: "text",
+        fileName: "เพิ่มเพื่อนใหม่ / ทักทาย AI",
+        lineUserId: userId,
+        lineDisplayName: displayName,
+        ocrStatus: "COMPLETED",
+        billingNo: null,
+        customerName: "AI ตอบรับทักทายผู้ใช้งาน",
+      });
+      if (event.replyToken) {
+        await replyLineMessages(
+          event.replyToken,
+          [{ type: "text", text: welcome.replyText, quickReply }],
+          config.channelAccessToken
+        );
+      }
       continue;
     }
 
